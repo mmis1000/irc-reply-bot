@@ -1,6 +1,14 @@
+TextRouter = require('./lib/textrouter.js');
+Storage = require('./lib/storage.js');
+CommandManager = require('./lib/commandmanager.js');
+commandSay = new require('./lib/commandsay.js')
+path = require('path');
+
 var botName = "mmis1000_bot"
 var channal = "#ysitd"
 var irc = require('irc');
+var savePath = path.resolve(__dirname, 'save/cm.json')
+
 var client = new irc.Client('chat.freenode.net', botName, {
     channels: [channal],
 });
@@ -13,15 +21,12 @@ client.addListener('message', function (from, to, message) {
     }
 });*/
 
-path = require('path');
 
 
-TextRouter = require('./lib/textrouter.js');
+
 textRouter = new TextRouter
 
-Storage = require('./lib/storage.js');
-CommandManager = require('./lib/commandmanager.js');
-commandManager = new CommandManager (new Storage(path.resolve(__dirname, 'save/cm.json')), textRouter)
+commandManager = new CommandManager (new Storage(savePath), textRouter)
 commandSay = new require('./lib/commandsay.js')
 commandManager.register ("say", (new commandSay()), [])
 
