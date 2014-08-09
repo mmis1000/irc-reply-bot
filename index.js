@@ -5,7 +5,7 @@ commandSay = new require('./lib/commandsay.js')
 path = require('path');
 
 var botName = "mmis1000_bot"
-var channal = "#ysitd"
+var channal = "#ysttd"
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
 
@@ -28,7 +28,9 @@ textRouter = new TextRouter
 
 commandManager = new CommandManager (new Storage(savePath), textRouter)
 commandSay = new require('./lib/commandsay.js')
-commandManager.register ("say", (new commandSay()), [])
+commandRainbow = new require('./lib/commandrainbow.js')
+commandManager.register ("say", new commandSay, [])
+commandManager.register ("rainbow", new commandRainbow, [])
 
 
 client.on('error', function(err){

@@ -17,10 +17,13 @@ if exist node_modules/coffee-script/lib/coffee-script/command.js (
         --compile src/icommand.coffee
     coffee ^
         --output lib ^
+        --compile src/commandmanager.coffee
+    coffee ^
+        --output lib ^
         --compile src/commandsay.coffee
     coffee ^
         --output lib ^
-        --compile src/commandmanager.coffee
+        --compile src/commandrainbow.coffee
     echo build done!
 ) else (
     echo Dependencies missing. Run npm install
