@@ -124,10 +124,11 @@ class CommandManager extends EventEmitter
     if (text.search @identifier) != 0
       #handle keywords or none command here
       for keyword in @keywords
-        if (text.search keyword) >= 0
-          text = @keywordMap[keyword]
-          result = true
-          break
+        try
+          if (text.search keyword) >= 0
+            text = @keywordMap[keyword]
+            result = true
+            break
     else
       result = true
     
@@ -191,12 +192,18 @@ class CommandManager extends EventEmitter
     
     keyword = args[1]
     
+    keyword = keyword.replace /\\s/g, " "
+    
     if not @isOp sender.sender
       keyword = @keywordPrefix + keyword
-    
+      keyword = keyword.replace /\\/g, "\\\\"
+      keyword = keyword.replace /\./g, "\\."
+      keyword = keyword.replace /\*/g, "\\*"
+      keyword = keyword.replace /\+/g, "\\+"
+      keyword = keyword.replace /\?/g, "\\?"
+      keyword = keyword.replace /,\}/g, ",5}"
     text = args[2..].join " "
     
-    keyword = keyword.replace /\\s/g, " "
     
     if 0 > @keywords.indexOf keyword
       if @isOp sender.sender
@@ -218,21 +225,21 @@ class CommandManager extends EventEmitter
     keyword = args[1]
     keyword = keyword.replace /\\s/g, " "
     
-    if not @isOp sender.sender
+    if (not @isOp sender.sender) and (keyword.search "\\#{@keywordPrefix}" != 0)
       keyword = @keywordPrefix + keyword
     
     index = @keywords.indexOf keyword
     if 0 <= index
       @keywords.splice index, 1
       delete @keywordMap[keyword]
-    
+    ###
     if @isOp sender.sender
       keyword = @keywordPrefix + keyword
       index = @keywords.indexOf keyword
       if 0 <= index
         @keywords.splice index, 1
         delete @keywordMap[keyword]
-    
+    ###
     @storage.set "keywords" ,@keywords
     @storage.set "keywordMap", @keywordMap
     
