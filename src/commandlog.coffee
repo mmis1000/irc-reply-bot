@@ -50,7 +50,7 @@ class CommandSay extends Icommand
     for record in result.list
       date = new Date record.time
       replys.push "#{date.getFullYear()}/\
-        #{date.getMonth()}/\
+        #{date.getMonth() + 1}/\
         #{date.getDate()}-\
         #{date.getHours()}:\
         #{date.getMinutes()}:\
