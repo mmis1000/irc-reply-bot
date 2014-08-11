@@ -6,7 +6,6 @@ class CommandSay extends Icommand
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     message = args[1..].join " "
     message = message.replace /\\n/g, "\n"
-    message = message.replace /\\s/g, " "
     textRouter.output message, sender.channal
     success = true
     return success

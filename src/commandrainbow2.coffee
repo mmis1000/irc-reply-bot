@@ -17,15 +17,14 @@ class CommandSay extends Icommand
     message = args[1..].join " "
     message = message.replace /\\n/g, "\n"
     
-    temp = message.split ""
+    temp = message.split /(?:\r\n|\n)/g
     
     i = temp.length - 1
     while i >= 0
-      if !temp[i].match /\s/
-        temp.splice i, 0, colors[i %% colors.length]
+      temp[i] = @_colorText temp[i]
       i--
     
-    message = temp.join ""
+    message = temp.join "\n"
     
     textRouter.output message, sender.channel
     success = true
@@ -37,4 +36,16 @@ class CommandSay extends Icommand
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true
 
+  _colorText: (text)->
+    temp = text.split ""
+    sep = temp.length / colors.length
+    
+    i = temp.length - 1
+    while i >= 0
+      pos = Math.floor i * sep
+      temp.splice pos, 0, colors[i]
+      i--
+    
+    return temp.join ""
+    
 module.exports = CommandSay

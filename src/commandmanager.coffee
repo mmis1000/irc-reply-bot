@@ -28,6 +28,7 @@ class CommandManager extends EventEmitter
           "#{commandPrefix} [commandName]    for specified command!"
         ]
       hasPermission: -> return true
+      handleRaw: (sender, type, content)->return false
     
     @register 'help', helpCommand, ['?']
     
@@ -38,7 +39,8 @@ class CommandManager extends EventEmitter
         return ["command bind command to keyword! usage : ",
           "#{commandPrefix} keyword commandText.."
         ]
-      hasPermission: -> return true
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
+      handleRaw: (sender, type, content)->return false
     
     @register 'bind', bindCommand, []
     
@@ -49,7 +51,8 @@ class CommandManager extends EventEmitter
         return ["command unbind command from keyword! usage : ",
           "#{commandPrefix} keyword"
         ]
-      hasPermission: -> return true
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
+      handleRaw: (sender, type, content)->return false
     
     @register 'unbind', unbindCommand, []
     
@@ -60,7 +63,8 @@ class CommandManager extends EventEmitter
         return ["command show  keywords! usage : ",
           "#{commandPrefix}"
         ]
-      hasPermission: -> return true
+      hasPermission: => return true
+      handleRaw: (sender, type, content)->return false
     
     @register 'bindlist', bindListCommand, []
     
@@ -71,8 +75,11 @@ class CommandManager extends EventEmitter
         return ["command to op someone! usage : ",
           "#{commandPrefix} nick"
         ]
-      hasPermission: (sender ,text, args, storage, textRouter, commandManager)=>
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
         return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
     
     @register 'op', opCommand, []
     
@@ -83,8 +90,11 @@ class CommandManager extends EventEmitter
         return ["command to deop someone! usage : ",
           "#{commandPrefix} nick"
         ]
-      hasPermission: (sender ,text, args, storage, textRouter, commandManager)=>
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
         return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
     
     @register 'deop', deopCommand, []
     
@@ -95,8 +105,11 @@ class CommandManager extends EventEmitter
         return ["command unbind command from keyword! usage : ",
           "#{commandPrefix} nick"
         ]
-      hasPermission: (sender ,text, args, storage, textRouter, commandManager)=>
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
         return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
     
     @register 'ban', banCommand, []
     
@@ -107,22 +120,35 @@ class CommandManager extends EventEmitter
         return ["command unbind command from keyword! usage : ",
           "#{commandPrefix} nick"
         ]
-      hasPermission: (sender ,text, args, storage, textRouter, commandManager)=>
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
         return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
     
     @register 'unban', unbanCommand, []
     
     #bind input stream
     textRouter.on "input", (message, sender)=>
-      @handle sender, message, textRouter
+      @handleRaw sender, "text", message, textRouter
+      @handleText sender, message, textRouter
+
+  handleRaw: (sender, type, contents, textRouter)->
     
-  handle: (sender, text, textRouter)->
+    
+    for command in @commands
+      @commandMap[command].handleRaw sender, type, contents, textRouter, @
+
+  handleText: (sender, text, textRouter)->
+    commandmanager = @
+    
     if sender.sender in @storage.get "banList", []
       return false
     
     result = false 
     if (text.search @identifier) != 0
       #handle keywords or none command here
+      fromBinding = true
       for keyword in @keywords
         try
           if (text.search keyword) >= 0
@@ -130,6 +156,7 @@ class CommandManager extends EventEmitter
             result = true
             break
     else
+      fromBinding = false
       result = true
     
     if not result
@@ -147,14 +174,14 @@ class CommandManager extends EventEmitter
       if @aliasMap[command]
         command = @aliasMap[command]
       else
-        @_sendToPlace textRouter, sender.sender, sender.target, sender.channal, "no such command : #{command} \ntype '#{@identifier} help' for help!"
+        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command : #{command} \ntype '#{@identifier} help' for help!"
         return false
     
-    if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager)
+    if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
       if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager)
-        @_sendToPlace textRouter, sender.sender, sender.target, sender.channal, @commandMap[command].help "#{@identifier} #{command}"
+        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{@identifier} #{command}"
     else
-      @_sendToPlace textRouter, sender.sender, sender.target, sender.channal, 'access denied!'
+      @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'access denied!'
 
   register: (keyword, iCommand, aliasList)->
     @commands.push keyword
@@ -168,22 +195,28 @@ class CommandManager extends EventEmitter
     opList = @storage.get "ops", @defaultOps
     return name in opList
 
-  _sendToPlace: (textRouter, from, to, channal, message)->
-    if to == channal
-      textRouter.output(message, channal)
+  _sendToPlace: (textRouter, from, to, channel, message)->
+    if to == channel
+      textRouter.output(message, channel)
     else
       textRouter.output(message, from)
+
+  parseArgs: (text)->
+    argsText = text.replace @identifier, ""
+    argsText = argsText.replace /^ /g, ""
+    args = argsText.split(" ")
+    return args
 
   _commandHelp: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length > 2
       return false
     if args.length == 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "all commands : #{@commands.join ', '}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all commands : #{@commands.join ', '}"
     else
       if (@commands.indexOf args[1]) < 0
-        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "no such command!"
+        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command!"
       else
-        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, @commandMap[args[1]].help "#{@identifier} #{args[1]}"
+        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[args[1]].help "#{@identifier} #{args[1]}"
     return true
 
   _commandBind: (sender ,text, args, storage, textRouter, commandManager)->
@@ -215,7 +248,7 @@ class CommandManager extends EventEmitter
     @storage.set "keywords" ,@keywords
     @storage.set "keywordMap", @keywordMap
     
-    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "binded #{keyword} to #{text}"
+    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "binded #{keyword} to #{text}"
     return true
 
   _commandUnbind: (sender ,text, args, storage, textRouter, commandManager)->
@@ -243,13 +276,13 @@ class CommandManager extends EventEmitter
     @storage.set "keywords" ,@keywords
     @storage.set "keywordMap", @keywordMap
     
-    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "unbinded commands from #{keyword}"
+    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "unbinded commands from #{keyword}"
     return true
 
   _commandBindList: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 1
       return false
-    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "all used keywords : #{@keywords.join ', '}"
+    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all used keywords : #{@keywords.join ', '}"
     return true
 
   _commandOp: (sender ,text, args, storage, textRouter, commandManager)->
@@ -259,9 +292,9 @@ class CommandManager extends EventEmitter
     index = ops.indexOf args[1]
     if 0 > index
       ops.push args[1]
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "oped #{args[1]}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "oped #{args[1]}"
     else
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "#{args[1]} is already op!"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is already op!"
     @storage.set "ops", ops
     return true
 
@@ -271,10 +304,10 @@ class CommandManager extends EventEmitter
     ops = @storage.get "ops", @defaultOps
     index = ops.indexOf args[1]
     if 0 > index
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "#{args[1]} is not op"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is not op"
     else
       ops.splice index, 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "deoped #{args[1]}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "deoped #{args[1]}"
     @storage.set "ops", ops
     return true
 
@@ -285,9 +318,9 @@ class CommandManager extends EventEmitter
     index = banList.indexOf args[1]
     if 0 > index
       banList.push args[1]
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "banned #{args[1]}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "banned #{args[1]}"
     else
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "#{args[1]} is already banned"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is already banned"
     @storage.set "banList", banList
     return true
 
@@ -297,10 +330,10 @@ class CommandManager extends EventEmitter
     banList = @storage.get "banList", []
     index = banList.indexOf args[1]
     if 0 > index
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "#{args[1]} is not banned"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is not banned"
     else
       banList.splice index, 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channal, "unbanned #{args[1]}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "unbanned #{args[1]}"
     @storage.set "banList", banList
     return true
 

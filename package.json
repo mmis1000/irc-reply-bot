@@ -12,7 +12,7 @@
     "irc": "~0.3.7"
   },
   "devDependencies": {
-    "coffee-script": "~1.7"
+    "coffee-script": "~1.7.1"
   },
   "scripts": {
     "prepublish": "build"

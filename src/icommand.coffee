@@ -13,3 +13,7 @@ class Icommand
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true
+  
+  handleRaw: (sender, type, content, textRouter, commandManager)->return false
+
+module.exports = Icommand
