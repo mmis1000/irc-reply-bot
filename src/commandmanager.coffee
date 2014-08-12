@@ -227,8 +227,11 @@ class CommandManager extends EventEmitter
     
     keyword = keyword.replace /\\s/g, " "
     
+    if keyword.length < 1
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
+      return true
+    
     if not @isOp sender.sender
-      keyword = @keywordPrefix + keyword
       keyword = keyword.replace /\\/g, "\\\\"
       keyword = keyword.replace /\./g, "\\."
       keyword = keyword.replace /\*/g, "\\*"
@@ -243,14 +246,13 @@ class CommandManager extends EventEmitter
       keyword = keyword.replace /\|/g, "\\|"
       keyword = keyword.replace /\^/g, "\\^"
       keyword = keyword.replace /\$/g, "\\$"
-    text = args[2..].join " "
-    
-    if keyword.length < 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
-      return true
-    else if not @isOp sender.sender
+      
+      keyword = @keywordPrefix + keyword
       if keyword.length < 3
         keyword = keyword + "$"
+    
+    text = args[2..].join " "
+    
     
     if 0 > @keywords.indexOf keyword
       if @isOp sender.sender
