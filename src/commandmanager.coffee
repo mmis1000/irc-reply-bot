@@ -234,9 +234,22 @@ class CommandManager extends EventEmitter
       keyword = keyword.replace /\*/g, "\\*"
       keyword = keyword.replace /\+/g, "\\+"
       keyword = keyword.replace /\?/g, "\\?"
-      keyword = keyword.replace /,\}/g, ",5}"
+      keyword = keyword.replace /\[/g, "\\["
+      keyword = keyword.replace /\]/g, "\\]"
+      keyword = keyword.replace /\{/g, "\\{"
+      keyword = keyword.replace /\}/g, "\\}"
+      keyword = keyword.replace /\(/g, "\\)"
+      keyword = keyword.replace /\(/g, "\\)"
+      keyword = keyword.replace /\|/g, "\\|"
+      keyword = keyword.replace /\^/g, "\\^"
+      keyword = keyword.replace /\$/g, "\\$"
     text = args[2..].join " "
     
+    if keyword.length < 1
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
+    else if not @isOp sender.sender
+      if keyword.length < 3
+        keyword = keyword + "$"
     
     if 0 > @keywords.indexOf keyword
       if @isOp sender.sender
@@ -265,14 +278,7 @@ class CommandManager extends EventEmitter
     if 0 <= index
       @keywords.splice index, 1
       delete @keywordMap[keyword]
-    ###
-    if @isOp sender.sender
-      keyword = @keywordPrefix + keyword
-      index = @keywords.indexOf keyword
-      if 0 <= index
-        @keywords.splice index, 1
-        delete @keywordMap[keyword]
-    ###
+    
     @storage.set "keywords" ,@keywords
     @storage.set "keywordMap", @keywordMap
     
