@@ -274,7 +274,7 @@ class CommandManager extends EventEmitter
     keyword = args[1]
     keyword = keyword.replace /\\s/g, " "
     
-    if (not @isOp sender.sender) and (keyword.search "\\#{@keywordPrefix}" != 0)
+    if (not @isOp sender.sender) and ((keyword.search "\\#{@keywordPrefix}") != 0)
       keyword = @keywordPrefix + keyword
     
     index = @keywords.indexOf keyword
