@@ -247,6 +247,7 @@ class CommandManager extends EventEmitter
     
     if keyword.length < 1
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
+      return true
     else if not @isOp sender.sender
       if keyword.length < 3
         keyword = keyword + "$"
