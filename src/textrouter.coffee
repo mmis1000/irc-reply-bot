@@ -4,7 +4,7 @@ Senter = require './senter.js'
 
 class TextRouter extends EventEmitter
   constructor: ()->
-    @maxLength = 511
+    @maxLength = 350
   output : (message, to)->
     if Array.isArray message
       message = message.join "\n"
