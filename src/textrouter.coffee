@@ -1,26 +1,26 @@
 {EventEmitter} = require 'events'
 Senter = require './senter.js'
+{UTF8LengthSplit} = require './util.js'
+
 class TextRouter extends EventEmitter
   constructor: ()->
-    @maxLength = 255
+    @maxLength = 511
   output : (message, to)->
     if Array.isArray message
       message = message.join "\n"
     message = message.split /(?:\r\n|\n)/g
-    result = true
-    while result
-      result = false
-      index = 0
-      while index < message.length
-        if message[index].length > @maxLength
-          segA = message[index].substring(0, @maxLength)
-          segB = message[index].substring(@maxLength)
-          message.splice index, 1, segA, segB
-          result = true
-        index++
     
-    for item in message
+    temp = []
+    
+    for text in message
+      temp = temp.concat UTF8LengthSplit text, @maxLength
+    
+    console.log temp
+    console.log temp.length
+    
+    for item in temp
       @emit "output", item, to
+    
   input : (message, from, to, channal)->
     senter = new Senter from, to, message, channal
     @emit "input", message, senter
