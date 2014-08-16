@@ -9,18 +9,25 @@ setFile = (path, content)->
 
 class GM_Storage
   constructor: (@savePath)->
+    @useQuery = true
+    @scheduled = false
+    @saveInterval = 600 * 1000
     @cache = null
     @_load()
-
+    
+    process.on "exit", ()=>
+      console.log "saveing storage dump..."
+      @_save true
+    
   set: (key, value)->
     #make sure always get newest value
-    @_load()
+    #@_load()
     @cache[key] = value
     @_save()
 
   get: (key, defaultValue)->
     #make sure always get newest value
-    @_load()
+    #@_load()
     if @cache[key]
       @cache[key]
     else if defaultValue?
@@ -30,7 +37,7 @@ class GM_Storage
 
   remove: (key)->
     #make sure always get newest value
-    @_load()
+    #@_load()
     delete @cache[key]
     @_save()
   
@@ -47,10 +54,21 @@ class GM_Storage
       @cache = JSON.parse getFile @savePath
     else
       @cache = {}
-      @_save()
+      @_save true
 
-  _save: ()->
-    JSONText = JSON.stringify @cache, null, 4
-    setFile @savePath, JSONText
+  _save: (noQuery)->
+    setTimeoutR = (a, b)->setTimeout b, a
+    #console.log @
+    if @useQuery and !noQuery
+      if not @scheduled
+        setTimeoutR @saveInterval, ()=>
+          JSONText = JSON.stringify @cache, null, 4
+          setFile @savePath, JSONText
+          @scheduled = false
+        @scheduled = true
+    else
+      JSONText = JSON.stringify @cache, null, 4
+      setFile @savePath, JSONText
+
 
 module.exports = GM_Storage

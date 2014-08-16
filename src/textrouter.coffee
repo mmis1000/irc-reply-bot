@@ -15,8 +15,8 @@ class TextRouter extends EventEmitter
     for text in message
       temp = temp.concat UTF8LengthSplit text, @maxLength
     
-    console.log temp
-    console.log temp.length
+    #console.log temp
+    #console.log temp.length
     
     for item in temp
       @emit "output", item, to
