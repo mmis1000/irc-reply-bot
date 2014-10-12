@@ -23,7 +23,11 @@ class CommandSay extends Icommand
     
     commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "
       I have been here for
-      #{if day > 0 then day + ' day, ' else ''}\
+      #{
+      if day > 1 then day + ' days, ' 
+      else if day > 0 then '1 day, ' 
+      else ''
+      }\
       #{padding hour, "0", 2}:\
       #{padding minute, "0", 2}:\
       #{padding second, "0", 2} .
