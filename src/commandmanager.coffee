@@ -3,11 +3,15 @@
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
     @identifier = "!"
+    @commandFormat = /^[a-zA-Z1-9]+$/g
     @keywordPrefix = "^"
     #these command is deeply hook into runtime thus cannot be implement seperately
     @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
     
-    @defaultOps = ["mmis1000", "mmis1000_m"]
+    @sessionLength = 10 * 60 * 1000
+    @sessionExpire = {}
+    
+    @defaultOps = []
     
     @commands = []
     @commandMap = {}
@@ -43,6 +47,18 @@ class CommandManager extends EventEmitter
       handleRaw: (sender, type, content)->return false
     
     @register 'bind', bindCommand, []
+    
+    bindAppendCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandBindAppend sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return ["command append command text to keyword! usage : ",
+          "#{commandPrefix} keyword commandText.."
+        ]
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
+      handleRaw: (sender, type, content)->return false
+    
+    @register 'bindappend', bindAppendCommand, []
     
     unbindCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
@@ -128,6 +144,38 @@ class CommandManager extends EventEmitter
     
     @register 'unban', unbanCommand, []
     
+    banListCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandBanList sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return ["command show banned user! usage : ",
+          "#{commandPrefix}"
+        ]
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
+        return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
+    
+    @register 'banlist', banListCommand, []
+    
+    sudoCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandSudo sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return [
+          "update current user session to op session! usage : ",
+          "#{commandPrefix} # login or log out",
+          "#{commandPrefix} <command text> # exec command as operator"
+        ]
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
+        return true
+      handleRaw: (sender, type, content)->return false
+    
+    @register 'sudo', sudoCommand, []
+    
     #bind input stream
     textRouter.on "input", (message, sender)=>
       @handleRaw sender, "text", message, textRouter
@@ -139,14 +187,14 @@ class CommandManager extends EventEmitter
     for command in @commands
       @commandMap[command].handleRaw sender, type, contents, textRouter, @
 
-  handleText: (sender, text, textRouter)->
+  handleText: (sender, text, textRouter, isCommand = false)->
     commandmanager = @
     
     if sender.sender in @storage.get "banList", []
       return false
     
     result = false 
-    if (text.search @identifier) != 0
+    if (text.search @identifier) != 0 and !isCommand
       #handle keywords or none command here
       fromBinding = true
       for keyword in @keywords
@@ -162,13 +210,17 @@ class CommandManager extends EventEmitter
     if not result
       #it seems it isn't indentified by a identifier and none a keyword, so return at fast as possible
       return false
+    if text.search @identifier == 0
+      argsText = text.replace @identifier, ""
     
-    argsText = text.replace @identifier, ""
     argsText = argsText.replace /^ /g, ""
     
     args = argsText.split(" ")
     
     command = args[0]
+    
+    if !command.match @commandFormat
+      return false
     
     if (@commands.indexOf command) < 0
       if @aliasMap[command]
@@ -181,7 +233,7 @@ class CommandManager extends EventEmitter
       if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager)
         @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{@identifier} #{command}"
     else
-      @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'access denied!'
+      @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
 
   register: (keyword, iCommand, aliasList)->
     @commands.push keyword
@@ -191,9 +243,30 @@ class CommandManager extends EventEmitter
     for command in aliasList
       @aliasMap[command] = keyword
 
-  isOp: (name)->
+  isOp: (name, noSession)->
     opList = @storage.get "ops", @defaultOps
-    return name in opList
+    if opList.length is 0
+      return true
+    
+    if noSession
+      return name in opList
+    
+    #console.log(@sessionExpire)
+    
+    authed = @sessionExpire[name] && (@sessionExpire[name] >= Date.now() or @sessionExpire[name] is -1)
+    if (@sessionExpire[name] < Date.now() or @sessionExpire[name] is -1)
+      delete @sessionExpire[name]
+    
+    return authed
+
+  login: (name, once)->
+    if once
+      @sessionExpire[name] = -1
+    else
+      @sessionExpire[name] = Date.now() + @sessionLength
+
+  logout: (name, once)->
+    delete @sessionExpire[name]
 
   _sendToPlace: (textRouter, from, to, channel, message)->
     if to == channel
@@ -241,8 +314,8 @@ class CommandManager extends EventEmitter
       keyword = keyword.replace /\]/g, "\\]"
       keyword = keyword.replace /\{/g, "\\{"
       keyword = keyword.replace /\}/g, "\\}"
-      keyword = keyword.replace /\(/g, "\\)"
-      keyword = keyword.replace /\(/g, "\\)"
+      keyword = keyword.replace /\(/g, "\\("
+      keyword = keyword.replace /\)/g, "\\)"
       keyword = keyword.replace /\|/g, "\\|"
       keyword = keyword.replace /\^/g, "\\^"
       keyword = keyword.replace /\$/g, "\\$"
@@ -265,6 +338,35 @@ class CommandManager extends EventEmitter
     @storage.set "keywordMap", @keywordMap
     
     commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "binded #{keyword} to #{text}"
+    return true
+
+  _commandBindAppend: (sender ,text, args, storage, textRouter, commandManager)->
+    if args.length < 3
+      return false
+    
+    keyword = args[1]
+    
+    keyword = keyword.replace /\\s/g, " "
+    
+    if keyword.length < 1
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to identify at least one word!"
+      return true
+    
+    if (not @isOp sender.sender) and ((keyword.search "\\#{@keywordPrefix}") != 0)
+      keyword = @keywordPrefix + keyword
+    
+    text = args[2..].join " "
+    
+    
+    if 0 > @keywords.indexOf keyword
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304No such keyword!"
+      return true
+      
+    @keywordMap[keyword] += text
+    
+    @storage.set "keywordMap", @keywordMap
+    
+    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "appended #{text} to #{keyword}"
     return true
 
   _commandUnbind: (sender ,text, args, storage, textRouter, commandManager)->
@@ -291,7 +393,7 @@ class CommandManager extends EventEmitter
   _commandBindList: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 1
       return false
-    commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all used keywords : #{@keywords.join ', '}"
+    textRouter.output("all used keywords : #{@keywords.join ', '}", sender.sender)
     return true
 
   _commandOp: (sender ,text, args, storage, textRouter, commandManager)->
@@ -344,6 +446,45 @@ class CommandManager extends EventEmitter
       banList.splice index, 1
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "unbanned #{args[1]}"
     @storage.set "banList", banList
+    return true
+  
+  _commandBanList: (sender ,text, args, storage, textRouter, commandManager)->
+    if args.length != 1
+      return false
+    textRouter.output("all bannned user : #{@storage.get 'banList'}", sender.sender)
+    return true
+
+  _commandSudo: (sender ,text, args, storage, textRouter, commandManager)->
+    if args.length != 1
+      command = args[1..].join ' '
+    
+    if command and (args[0] is (@parseArgs command)[0])
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Sorry, but it does'nt make sence to exec #{args[0]} from #{args[0]}."
+      return true
+    
+    if @isOp sender.sender
+      if command
+        @handleText sender, command, textRouter, true
+      else
+        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "logout successfully"
+        @logout sender.sender
+      return true
+
+    #textRouter.output "test", sender.channel
+    textRouter.whois sender.sender, (info)=>
+      #textRouter.output "test#{JSON.stringify info}", sender.channel
+      if @isOp info.account, true
+        if command
+          @login sender.sender
+          #commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "exec as operator #{JSON.stringify [sender, command]}"
+          @handleText sender, command, textRouter, true
+          @logout sender.sender
+        else
+          @login sender.sender
+          commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "login successfully"
+        
+      else
+        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "access denied"
     return true
 
 module.exports = CommandManager

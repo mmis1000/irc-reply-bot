@@ -25,4 +25,7 @@ class TextRouter extends EventEmitter
     senter = new Senter from, to, message, channal
     @emit "input", message, senter
 
+  whois : (user, callback)->
+    @emit "whois", user, callback
+
 module.exports = TextRouter

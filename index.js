@@ -3,8 +3,8 @@ Storage = require('./lib/storage.js');
 CommandManager = require('./lib/commandmanager.js');
 path = require('path');
 
-var botName = "mmis1000_bot"
-var channel = "#ysttd"
+var botName = "reply_bot"
+var channel = "#test56"
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
 var chatLogPath = path.resolve(__dirname, 'save/chatlog.json')
@@ -13,8 +13,7 @@ var msPingTimeout = 600 * 1000;
 var msRetryDelay = 60 * 1000;
 
 var client = new irc.Client('chat.freenode.net', botName, {
-    channels: [channel],
-    debug: true
+    channels: [channel]
 });
 client.activateFloodProtection(500);
 
@@ -27,12 +26,13 @@ CommandSay = require('./lib/commandsay.js')
 CommandRainbow = require('./lib/commandrainbow.js')
 CommandRainbow2 = require('./lib/commandrainbow2.js')
 CommandLog = require('./lib/commandlog.js')
-
+CommandUptime = require('./lib/commanduptime.js')
 
 commandManager.register ("say", new CommandSay, []);
 commandManager.register ("rainbow", new CommandRainbow, []);
 commandManager.register ("rainbow2", new CommandRainbow2, []);
 commandManager.register ("log", new CommandLog(new Storage(chatLogPath)), []);
+commandManager.register ("uptime", new CommandUptime(), []);
 
 
 
@@ -97,6 +97,10 @@ textRouter.on("output", function(m, target){
     } else {
         client.say(channel, m);
     }
+});
+
+textRouter.on("whois", function(user, callback){
+    client.whois(user, callback);
 });
 
 client.on("raw", function(e){
