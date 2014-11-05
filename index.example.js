@@ -5,6 +5,8 @@ path = require('path');
 
 var botName = "ysitd_bot"
 var channel = "#ysttd"
+var server = "chat.freenode.net"
+
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
 var chatLogPath = path.resolve(__dirname, 'save/chatlog.json')
@@ -12,7 +14,7 @@ var chatLogPath = path.resolve(__dirname, 'save/chatlog.json')
 var msPingTimeout = 600 * 1000;
 var msRetryDelay = 60 * 1000;
 
-var client = new irc.Client('chat.freenode.net', botName, {
+var client = new irc.Client(server, botName, {
     channels: [channel]
 });
 client.activateFloodProtection(500);
