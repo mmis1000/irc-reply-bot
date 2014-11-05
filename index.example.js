@@ -3,8 +3,8 @@ Storage = require('./lib/storage.js');
 CommandManager = require('./lib/commandmanager.js');
 path = require('path');
 
-var botName = "reply_bot"
-var channel = "#test56"
+var botName = "ysitd_bot"
+var channel = "#ysttd"
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
 var chatLogPath = path.resolve(__dirname, 'save/chatlog.json')
@@ -26,15 +26,33 @@ CommandSay = require('./lib/commandsay.js')
 CommandRainbow = require('./lib/commandrainbow.js')
 CommandRainbow2 = require('./lib/commandrainbow2.js')
 CommandLog = require('./lib/commandlog.js')
+CommandSpeedTestFake = require('./lib/commandspeedtestfake.js')
 CommandUptime = require('./lib/commanduptime.js')
+CommandPass = require('./lib/commandpass.js')
+CommandLookup = require('./lib/commandnslookup.js')
 
 commandManager.register ("say", new CommandSay, []);
 commandManager.register ("rainbow", new CommandRainbow, []);
 commandManager.register ("rainbow2", new CommandRainbow2, []);
 commandManager.register ("log", new CommandLog(new Storage(chatLogPath)), []);
+commandManager.register ("stf", new CommandSpeedTestFake(), []);
 commandManager.register ("uptime", new CommandUptime(), []);
+commandManager.register ("pass", new CommandPass(), []);
+commandManager.register ("lookup", new CommandLookup(), ['lu']);
 
+try {
+  CommandTrace = require('./lib/commandtrace.js')
+  commandManager.register ("trace", new CommandTrace(), ['t']);
+} catch (e) {
+  console.log("fail to load 'trace', you may not have enough privilege to run this module")
+}
 
+try {
+  CommandPing = require('./lib/commandping.js')
+  commandManager.register ("ping", new CommandPing(), ['p']);
+} catch (e) {
+  console.log("fail to load 'ping', you may not have enough privilege to run this module")
+}
 
 (function(){
     
@@ -92,11 +110,9 @@ client.on('error', function(err){
 });
 
 textRouter.on("output", function(m, target){
-    if (target) {
-        client.say(target, m);
-    } else {
-        client.say(channel, m);
-    }
+    target = target || channel;
+    client.say(target, m);
+    console.log('*self* => ' + target + ': ' + m);
 });
 
 textRouter.on("whois", function(user, callback){
