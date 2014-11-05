@@ -273,10 +273,16 @@ class CommandManager extends EventEmitter
       textRouter.output(message, channel)
     else
       textRouter.output(message, from)
-
+  
+  send: (sender, router, text)->
+    @_sendToPlace router, sender.sender, sender.target, sender.channel, text
+    
+  sendPv: (sender, router, text)->
+    router.output text, sender.sender
+    
   parseArgs: (text)->
-    argsText = text.replace @identifier, ""
-    argsText = argsText.replace /^ /g, ""
+    argsText =  if 0 == (text.search @identifier) then (text.replace @identifier, "") else text
+    argsText = argsText.replace /^\s*/g, ""
     args = argsText.split(" ")
     return args
 
@@ -291,7 +297,8 @@ class CommandManager extends EventEmitter
       else
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[args[1]].help "#{@identifier} #{args[1]}"
     return true
-
+  
+  
   _commandBind: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 3
       return false
@@ -303,6 +310,21 @@ class CommandManager extends EventEmitter
     if keyword.length < 1
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
       return true
+    
+    if  0 == keyword.search "\\^"
+      atHead = true
+      keyword = keyword.slice 1
+    else
+      atHead = false
+    
+    
+    if keyword.length - 1 == keyword.search "\\$" 
+      atEnd = true
+      keyword = keyword.slice 0, keyword.length - 1
+    else
+      atEnd = false
+    
+    realLength = keyword.length
     
     if not @isOp sender.sender
       keyword = keyword.replace /\\/g, "\\\\"
@@ -320,12 +342,17 @@ class CommandManager extends EventEmitter
       keyword = keyword.replace /\^/g, "\\^"
       keyword = keyword.replace /\$/g, "\\$"
       
-      keyword = @keywordPrefix + keyword
-      if keyword.length < 3
-        keyword = keyword + "$"
+      atHead = true
+      if realLength < 3
+        atEnd = true
     
     text = args[2..].join " "
     
+    if atHead
+      keyword = "^#{keyword}"
+    
+    if atEnd
+      keyword = "#{keyword}$"
     
     if 0 > @keywords.indexOf keyword
       if @isOp sender.sender
