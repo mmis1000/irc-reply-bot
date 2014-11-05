@@ -28,7 +28,6 @@ CommandSay = require('./lib/commandsay.js')
 CommandRainbow = require('./lib/commandrainbow.js')
 CommandRainbow2 = require('./lib/commandrainbow2.js')
 CommandLog = require('./lib/commandlog.js')
-CommandSpeedTestFake = require('./lib/commandspeedtestfake.js')
 CommandUptime = require('./lib/commanduptime.js')
 CommandPass = require('./lib/commandpass.js')
 CommandLookup = require('./lib/commandnslookup.js')
@@ -37,7 +36,6 @@ commandManager.register ("say", new CommandSay, []);
 commandManager.register ("rainbow", new CommandRainbow, []);
 commandManager.register ("rainbow2", new CommandRainbow2, []);
 commandManager.register ("log", new CommandLog(new Storage(chatLogPath)), []);
-commandManager.register ("stf", new CommandSpeedTestFake(), []);
 commandManager.register ("uptime", new CommandUptime(), []);
 commandManager.register ("pass", new CommandPass(), []);
 commandManager.register ("lookup", new CommandLookup(), ['lu']);
