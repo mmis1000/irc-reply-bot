@@ -27,5 +27,8 @@ class TextRouter extends EventEmitter
 
   whois : (user, callback)->
     @emit "whois", user, callback
+    
+  names : (channal, callback)->
+    @emit "names", channal, callback
 
 module.exports = TextRouter

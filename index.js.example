@@ -3,9 +3,9 @@ Storage = require('./lib/storage.js');
 CommandManager = require('./lib/commandmanager.js');
 path = require('path');
 
-var botName = "ysitd_bot"
-var channel = "#ysttd"
+var botName = "replybot"
 var server = "chat.freenode.net"
+var channel = "#test56"
 
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
@@ -31,6 +31,9 @@ CommandLog = require('./lib/commandlog.js')
 CommandUptime = require('./lib/commanduptime.js')
 CommandPass = require('./lib/commandpass.js')
 CommandLookup = require('./lib/commandnslookup.js')
+CommandNotifyAll = require('./lib/commandnotifyall.js')
+CommandRand = require('./lib/commands/commandrand.js')
+CommandReply = require('./lib/commands/commandreply.js')
 
 commandManager.register ("say", new CommandSay, []);
 commandManager.register ("rainbow", new CommandRainbow, []);
@@ -38,7 +41,10 @@ commandManager.register ("rainbow2", new CommandRainbow2, []);
 commandManager.register ("log", new CommandLog(new Storage(chatLogPath)), []);
 commandManager.register ("uptime", new CommandUptime(), []);
 commandManager.register ("pass", new CommandPass(), []);
-commandManager.register ("lookup", new CommandLookup(), ['lu']);
+commandManager.register ("notifyall", new CommandNotifyAll(), ['na']);
+commandManager.register ("lookup", new CommandLookup(), []);
+commandManager.register ("rand", new CommandRand(), []);
+commandManager.register ("reply", new CommandReply(), []);
 
 try {
   CommandTrace = require('./lib/commandtrace.js')
@@ -54,6 +60,13 @@ try {
   console.log("fail to load 'ping', you may not have enough privilege to run this module")
 }
 
+try {
+  CommandFindFastestServer = require('./lib/commands/commandfindfastestserver.js')
+  commandManager.register ("findfastestserver", new CommandFindFastestServer(), ['ffs']);
+} catch (e) {
+  console.log("fail to load 'findfastestserver', you may not have enough privilege to run this module")
+  //console.log(e);
+}
 (function(){
     
     //handle for netError
@@ -120,9 +133,14 @@ textRouter.on("whois", function(user, callback){
 });
 
 client.on("raw", function(e){
-    if (e.command === "rpl_creationtime") {
-        textRouter.output('bot loaded!');
+    if (e.command === "rpl_welcome") {
+        botName = e.args[0];
     }
+    if (e.command === "JOIN" && botName === e.nick) {
+        textRouter.output('bot connected');
+        
+    }
+    //console.log(e);
 });
 
 client.addListener('message', function (from, to, message) {
@@ -130,7 +148,38 @@ client.addListener('message', function (from, to, message) {
     textRouter.input(message, from, to, channel);
 });
 
-
+(function(){
+    var waitingForChannel = [];
+    client.on("raw", function(e){
+        if (e.command === "rpl_namreply") {
+            var channel = e.args[2];
+            var names = e.args[3].split(' ');
+            //console.log('debug', channel, names);
+            waitingForChannel.forEach(function(item){
+                if (channel === item.channel) {
+                    item.callback(names);
+                }
+            });
+            waitingForChannel = waitingForChannel.filter(function(item){
+              return item.channel !== channel;
+            });
+        }
+        if (e.command === "rpl_endofnames") {
+            waitingForChannel.forEach(function(item){
+                item.callback([]);
+            });
+            waitingForChannel = [];
+        }
+    })
+  
+    textRouter.on("names", function(channel, callback){
+        waitingForChannel.push({
+            channel : channel,
+            callback : callback
+        })
+        client.send('NAMES', channel);
+    });
+}());
 
 //fix exit Handler
 process.stdin.resume();//so the program will not close instantly

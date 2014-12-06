@@ -1,6 +1,6 @@
-Icommand = require './icommand.js'
+Icommand = require '../icommand.js'
 
-class CommandSay extends Icommand
+class CommandReply extends Icommand
   constructor: ()->
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
@@ -8,15 +8,19 @@ class CommandSay extends Icommand
       return false
     message = args[1..].join " "
     message = message.replace /\\n/g, "\n"
-    textRouter.output message, sender.channel
+    
+    commandManager.send sender, textRouter, message
+    
     success = true
     return success
   
   help: (commandPrefix)->
-    console.log "add method to override this!"
-    return ["make this bot to say some message, Usage", "#{commandPrefix} messages.."];
+    #console.log "add method to override this!"
+    return ["make this bot to say some message", 
+      "this command will send to you according to where you exec this command, Usage", 
+      "#{commandPrefix} messages.."];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true
 
-module.exports = CommandSay
+module.exports = CommandReply

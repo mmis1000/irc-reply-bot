@@ -187,11 +187,18 @@ class CommandManager extends EventEmitter
     for command in @commands
       @commandMap[command].handleRaw sender, type, contents, textRouter, @
 
-  handleText: (sender, text, textRouter, isCommand = false)->
+  handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
     commandmanager = @
     
+    ###
     if sender.sender in @storage.get "banList", []
       return false
+    ###
+    
+    for i in (@storage.get "banList") || []
+      try
+        if 0 <= sender.sender.search new RegExp i, "gi"
+          return false
     
     result = false 
     if (text.search @identifier) != 0 and !isCommand
@@ -204,16 +211,15 @@ class CommandManager extends EventEmitter
             result = true
             break
     else
-      fromBinding = false
       result = true
     
     if not result
-      #it seems it isn't indentified by a identifier and none a keyword, so return at fast as possible
+      #it seems it isn't indentified by a identifier and nor a keyword, so return at fast as possible
       return false
     if text.search @identifier == 0
       argsText = text.replace @identifier, ""
     
-    argsText = argsText.replace /^ /g, ""
+    argsText = argsText.replace /^\s+/g, ""
     
     args = argsText.split(" ")
     
