@@ -3,7 +3,7 @@
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
     @identifier = "!"
-    @commandFormat = /^[a-zA-Z1-9]+$/g
+    @commandFormat = /^.+$/g
     @keywordPrefix = "^"
     #these command is deeply hook into runtime thus cannot be implement seperately
     @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
@@ -207,9 +207,12 @@ class CommandManager extends EventEmitter
       for keyword in @keywords
         try
           if (text.search keyword) >= 0
-            text = @keywordMap[keyword]
+            regex = new RegExp keyword
+            text = (regex.exec text)[0].replace regex, @keywordMap[keyword]
             result = true
             break
+        catch e
+          console.log e
     else
       result = true
     

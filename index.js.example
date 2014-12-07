@@ -3,9 +3,9 @@ Storage = require('./lib/storage.js');
 CommandManager = require('./lib/commandmanager.js');
 path = require('path');
 
-var botName = "replybot"
+var botName = "mmis1000_bot"
 var server = "chat.freenode.net"
-var channel = "#test56"
+var channel = "#ysitd"
 
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
@@ -23,6 +23,8 @@ client.activateFloodProtection(500);
 textRouter = new TextRouter
 
 commandManager = new CommandManager (new Storage(savePath), textRouter)
+commandManager.identifier = "&";
+
 
 CommandSay = require('./lib/commandsay.js')
 CommandRainbow = require('./lib/commandrainbow.js')
@@ -34,6 +36,8 @@ CommandLookup = require('./lib/commandnslookup.js')
 CommandNotifyAll = require('./lib/commandnotifyall.js')
 CommandRand = require('./lib/commands/commandrand.js')
 CommandReply = require('./lib/commands/commandreply.js')
+CommandFortune = require('./lib/commands/fortune')
+
 
 commandManager.register ("say", new CommandSay, []);
 commandManager.register ("rainbow", new CommandRainbow, []);
@@ -45,6 +49,7 @@ commandManager.register ("notifyall", new CommandNotifyAll(), ['na']);
 commandManager.register ("lookup", new CommandLookup(), []);
 commandManager.register ("rand", new CommandRand(), []);
 commandManager.register ("reply", new CommandReply(), []);
+commandManager.register ("fortune", new CommandFortune(), []);
 
 try {
   CommandTrace = require('./lib/commandtrace.js')
