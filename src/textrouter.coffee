@@ -31,4 +31,13 @@ class TextRouter extends EventEmitter
   names : (channal, callback)->
     @emit "names", channal, callback
 
+  raw : (args...)->
+    if args.length == 1 && Array.isArray args[0]
+      args = args[0]
+    
+    @emit "raw", args
+
+  rplRaw : (reply)->
+    @emit "rpl_raw", reply
+
 module.exports = TextRouter

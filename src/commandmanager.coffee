@@ -3,7 +3,7 @@
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
     @identifier = "!"
-    @commandFormat = /^.+$/g
+    @commandFormat = /^[a-zA-Z].*$/g
     @keywordPrefix = "^"
     #these command is deeply hook into runtime thus cannot be implement seperately
     @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
@@ -15,6 +15,7 @@ class CommandManager extends EventEmitter
     
     @commands = []
     @commandMap = {}
+    @commandAliasMap = {}
     
     @aliasMap = {}
     
@@ -177,16 +178,26 @@ class CommandManager extends EventEmitter
     @register 'sudo', sudoCommand, []
     
     #bind input stream
+    @defaultRouter = textRouter
+    
     textRouter.on "input", (message, sender)=>
+      
+      @lastChannel = sender.channel
+      @lastSender = sender.channel
+      
       @handleRaw sender, "text", message, textRouter
       @handleText sender, message, textRouter
+    
+    opList = @storage.get "ops", @defaultOps
+    if opList.length == 0
+      textRouter.output "[Warning] no op setted, assume everyone has operator permission"
 
   handleRaw: (sender, type, contents, textRouter)->
-    
-    
+    event = {cancelled : false}
     for command in @commands
-      @commandMap[command].handleRaw sender, type, contents, textRouter, @
-
+      @commandMap[command].handleRaw sender, type, contents, textRouter, @, event
+    return event
+    
   handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
     commandmanager = @
     
@@ -237,9 +248,13 @@ class CommandManager extends EventEmitter
       else
         @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command : #{command} \ntype '#{@identifier} help' for help!"
         return false
-    
+
+    if ( @handleRaw sender, "before_permission", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
+      return false
     if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
-      if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager)
+      if ( @handleRaw sender, "before_command", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
+        return false
+      if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
         @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{@identifier} #{command}"
     else
       @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
@@ -247,7 +262,7 @@ class CommandManager extends EventEmitter
   register: (keyword, iCommand, aliasList)->
     @commands.push keyword
     @commandMap[keyword] = iCommand
-    
+    @commandAliasMap[keyword] = aliasList
     #generate reverse map for fast access
     for command in aliasList
       @aliasMap[command] = keyword
@@ -299,7 +314,14 @@ class CommandManager extends EventEmitter
     if args.length > 2
       return false
     if args.length == 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all commands : #{@commands.join ', '}"
+      message = "all commands : "
+      for command, index in @commands
+        message += command
+        if @commandAliasMap[command].length > 0
+          message += "[#{@commandAliasMap[command].join ', '}]"
+        if index != @commands.length - 1
+          message += ", "
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all commands : #{message}\nuse { #{@identifier}help [command] } to see usage of command"
     else
       if (@commands.indexOf args[1]) < 0
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command!"
@@ -314,7 +336,7 @@ class CommandManager extends EventEmitter
     
     keyword = args[1]
     
-    keyword = keyword.replace /\\s/g, " "
+    #keyword = keyword.replace /\\s/g, " "
     
     if keyword.length < 1
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
@@ -351,6 +373,7 @@ class CommandManager extends EventEmitter
       keyword = keyword.replace /\^/g, "\\^"
       keyword = keyword.replace /\$/g, "\\$"
       
+      keyword = keyword.replace /\\\\\\s/g, "\\s"
       atHead = true
       if realLength < 3
         atEnd = true
@@ -406,11 +429,15 @@ class CommandManager extends EventEmitter
     return true
 
   _commandUnbind: (sender ,text, args, storage, textRouter, commandManager)->
+    if null != (/^"(.+)"$/).exec args[1..].join " "
+      args[1] = ( (/^"(.+)"$/).exec args[1..].join " " )[1]
+      args = args[0..1]
+    #console.log args, (/^"(.+)"$/).exec args[1..].join " "
     if args.length != 2
       return false
       
     keyword = args[1]
-    keyword = keyword.replace /\\s/g, " "
+    #keyword = keyword.replace /\\s/g, " "
     
     if (not @isOp sender.sender) and ((keyword.search "\\#{@keywordPrefix}") != 0)
       keyword = @keywordPrefix + keyword

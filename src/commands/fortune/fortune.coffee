@@ -22,7 +22,7 @@ class CommandFortune extends Icommand
   
   help: (commandPrefix)->
     console.log "add method to override this!"
-    return ["make this bot to say some message, Usage", "#{commandPrefix} messages.."];
+    return ["get a fortune stick, Usage", "#{commandPrefix}"];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true
