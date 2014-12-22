@@ -10,26 +10,51 @@ class CommandRegex extends Icommand
       postMean : '是：'
       think : '認為'
     }
+    @enabled = true
+    if storage
+      @enabled = storage.get 'regexReplace', true
+      
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2 || 0 > ['on', 'off'].indexOf args[1]
       return false
-    message = args[1..].join " "
-    message = message.replace /\\n/g, "\n"
-    textRouter.output message, sender.channel
+    
+    if args[1] is 'on'
+      @enabled = true
+      if @storage
+        @storage.set 'regexReplace', true
+        commandManager.send sender, textRouter, "regex module has been enabled"
+    else
+      @enabled = false
+      if @storage
+        @storage.set 'regexReplace', false
+        commandManager.send sender, textRouter, "regex module has been disabled"
+
     success = true
     return success
   
   help: (commandPrefix)->
-    console.log "add method to override this!"
-    return ["toggle this model, Usage", "#{commandPrefix} [on|off]"];
+    return [
+      "Use regex to replace words. ",
+      "The regex and replacedBy are actully passed into js's replace method directly.",
+      "Please see http://www.w3schools.com/jsref/jsref_replace.asp for more detail.",
+      "only \\ and / in replacedBy need to be escaped",
+      "Usage:",
+      "#{commandPrefix} [on|off] #toggle this module",
+      "s/regex/replacedBy[/modifiers] #replace words in the sentence you said",
+      "{nick} , s/regex/replacedBy/modifiers #replace words in the sentence others said, Use : after nick is also accepted, the space next to , or : is also optional",
+      "Example:",
+      "s/[a-zA-Z]// #remove first english alphabet found in yours words",
+      "jame: s/[a-zA-Z]/*/g #replace all english alphabet in jame's words with *"
+    ];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return commandManager.isOp sender.sender
 
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    
+    if not @enabled
+      return true
     if type isnt "text"
-      return false
+      return true
     
     #console.log content
     if 0 != sender.target.search '#'
@@ -37,22 +62,26 @@ class CommandRegex extends Icommand
       sender.target.search '#'
       return
     
-    tags = (/^([a-zA-Z0-9]+)\s?[,:]\s?(.+)$/).exec content
+    tags = (/^([a-zA-Z0-9_]+)\s?[,:]\s?(.+)$/).exec content
     
-    
+    maybeACommand = false
     if not tags
       result = @_parseCommand content
+      maybeACommand = !!content.match /s\//
       sayer = sender.sender
     else
       result = @_parseCommand tags[2]
-      if result
-        sayer = tags[1]
-        referredBy = sender.sender
+      sayer = tags[1]
+      maybeACommand = !!tags[2].match /s\//
+      referredBy = sender.sender
     
-    if not result || not @lastMessages[sayer]
-      @lastMessages[sender.sender] = @lastMessages[sender.sender] || []
-      @lastMessages[sender.sender].unshift content
-      @lastMessages[sender.sender] = @lastMessages[sender.sender][0..@record - 1]
+    #console.log result, @lastMessages[sayer], maybeACommand
+    
+    if (not result || not @lastMessages[sayer])
+      if not maybeACommand
+        @lastMessages[sender.sender] = @lastMessages[sender.sender] || []
+        @lastMessages[sender.sender].unshift content
+        @lastMessages[sender.sender] = @lastMessages[sender.sender][0..@record - 1]
       return true
     
     for message, index in @lastMessages[sayer]
@@ -63,7 +92,7 @@ class CommandRegex extends Icommand
           textRouter.output "#{sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
         else
           textRouter.output "#{referredBy} #{@locale.think} #{sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
-          break
+        break
     
     return true
 
@@ -73,10 +102,10 @@ class CommandRegex extends Icommand
       return false
     
     slashs = (line.filter ((i)->return i=="/")).length
+    #console.log (JSON.stringify line), slashs
     if 2 == slashs
       line.push '/'
       slashs = 3
-      #console.log JSON.stringify line
     if 3 != slashs
       return false
     
@@ -89,7 +118,7 @@ class CommandRegex extends Icommand
     
     slash3 = line.indexOf '/', slash2 + 1
     
-    replace = (line[slash2 + 1..slash3 - 1].join '').replace /\\\//g, '/'
+    replace = (line[slash2 + 1..slash3 - 1].join '').replace /\\(\/|\\)/g, '$1'
     #console.log replace
     
     flags = line[slash3 + 1..].join ''

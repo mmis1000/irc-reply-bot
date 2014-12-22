@@ -3,19 +3,23 @@ Storage = require('./lib/storage.js');
 CommandManager = require('./lib/commandmanager.js');
 path = require('path');
 
-var botName = "mmis1000_bot"
+var botName = "reply_bot"
 var server = "chat.freenode.net"
-var channel = "#ysitd"
+var channel = "#test56"
 
 var irc = require('irc');
 var savePath = path.resolve(__dirname, 'save/cm.json')
 var chatLogPath = path.resolve(__dirname, 'save/chatlog.json')
+var regexConfigPath = path.resolve(__dirname, 'save/regex.json')
+var titleParserConfigPath = path.resolve(__dirname, 'save/titleparse.json')
 
 var msPingTimeout = 600 * 1000;
 var msRetryDelay = 60 * 1000;
 
 var client = new irc.Client(server, botName, {
-    channels: [channel]
+    channels: [channel],
+    userName: 'replybot',
+    realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
 });
 client.activateFloodProtection(500);
 
@@ -37,6 +41,8 @@ CommandNotifyAll = require('./lib/commandnotifyall.js')
 CommandRand = require('./lib/commands/commandrand.js')
 CommandReply = require('./lib/commands/commandreply.js')
 CommandFortune = require('./lib/commands/fortune')
+CommandRegex = require('./lib/commands/commandregex.js')
+CommandTitle = require('./lib/commands/titleparser')
 
 
 commandManager.register ("say", new CommandSay, []);
@@ -50,6 +56,8 @@ commandManager.register ("lookup", new CommandLookup(), []);
 commandManager.register ("rand", new CommandRand(), []);
 commandManager.register ("reply", new CommandReply(), []);
 commandManager.register ("fortune", new CommandFortune(), []);
+commandManager.register ("regex", new CommandRegex(new Storage(regexConfigPath)), []);
+commandManager.register ("title", new CommandTitle(new Storage(titleParserConfigPath)), []);
 
 try {
   CommandTrace = require('./lib/commandtrace.js')
@@ -130,7 +138,7 @@ client.on('error', function(err){
 textRouter.on("output", function(m, target){
     target = target || channel;
     client.say(target, m);
-    console.log('*self* => ' + target + ': ' + m);
+    console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + '*self* => ' + target + ': ' + m);
 });
 
 textRouter.on("whois", function(user, callback){
@@ -149,7 +157,7 @@ client.on("raw", function(e){
 });
 
 client.addListener('message', function (from, to, message) {
-    console.log(from + ' => ' + to + ': ' + message);
+    console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + from + ' => ' + to + ': ' + message);
     textRouter.input(message, from, to, channel);
 });
 
@@ -192,7 +200,13 @@ process.nextTick(function() {
     function exitHandler(options, err) {
         if (options.cleanup) console.log('clean');
         if (err) console.log(err.stack);
-        if (options.exit) process.exit();
+        if (options.exit) {
+            process.nextTick(function() {
+                process.exit();
+                //make sure a clear shut down and will not exit until all exit call finished
+            })
+            
+        };
     }
 
     //do something when app is closing

@@ -293,8 +293,8 @@ class CommandManager extends EventEmitter
     delete @sessionExpire[name]
 
   _sendToPlace: (textRouter, from, to, channel, message)->
-    if to == channel
-      textRouter.output(message, channel)
+    if 0 == to.search /^#/
+      textRouter.output(message, to)
     else
       textRouter.output(message, from)
   
@@ -303,7 +303,10 @@ class CommandManager extends EventEmitter
     
   sendPv: (sender, router, text)->
     router.output text, sender.sender
-    
+
+  sendChannel: (sender, router, text)->
+    router.output text, sender.channel
+
   parseArgs: (text)->
     argsText =  if 0 == (text.search @identifier) then (text.replace @identifier, "") else text
     argsText = argsText.replace /^\s*/g, ""
