@@ -77,7 +77,7 @@ class CommandRegex extends Icommand
     
     #console.log result, @lastMessages[sayer], maybeACommand
     
-    if (not result || not @lastMessages[sayer])
+    if (not result || not @lastMessages[sayer] || commandManager.isBanned sender)
       if not maybeACommand
         @lastMessages[sender.sender] = @lastMessages[sender.sender] || []
         @lastMessages[sender.sender].unshift content

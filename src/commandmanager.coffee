@@ -266,7 +266,14 @@ class CommandManager extends EventEmitter
     #generate reverse map for fast access
     for command in aliasList
       @aliasMap[command] = keyword
-
+  
+  isBanned: (sender)->
+    for i in (@storage.get "banList") || []
+      try
+        if 0 <= sender.sender.search new RegExp i, "gi"
+          return true
+    return false
+  
   isOp: (name, noSession)->
     opList = @storage.get "ops", @defaultOps
     if opList.length is 0

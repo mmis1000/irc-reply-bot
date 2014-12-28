@@ -2,6 +2,8 @@ virtual_class = require '../../virtualclass.js'
 Icommand = require '../../icommand.js'
 {EventEmitter} = require('events')
 phantom = require 'phantom'
+loadFileIn = require '../../folderloader.js'
+path = require 'path'
 ###
  * emit : parseurl
  * emit : beforecreate
@@ -11,6 +13,8 @@ phantom = require 'phantom'
 ###
 class CommandTitle extends virtual_class Icommand, EventEmitter
   constructor: (@storage)->
+    @debug = true
+    
     @setting = @storage.get 'titleParser', {enabled : true, mode : 'default', exclude : []}
     @matchRuleMap = {
       'default' : /https?:\/\/[^\.\s\/]+(?:\.[^\.\s\/]+)+(?:\/[^\s]*)?/g
@@ -20,7 +24,9 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {onStdout : ()->null},(ph)=>
       @ph = ph
       console.log 'phantom instance created'
-    @debug = true
+    
+    @_loadPlugins()
+    
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     switch args[1]
       when 'toggle'
@@ -127,14 +133,17 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       return true
       
     @ph.createPage (page) =>
-      page.set 'settings.resourceTimeout', 1000
+      page.set 'settings.resourceTimeout', 5000
       page.set 'settings.webSecurityEnabled ', false
       page.set 'settings.loadImages', false
       page.set 'settings.userAgent', 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1478.0 Safari/537.36'
       event.page = page
+      
       @emit 'beforeopen', event
       if event.canceled
         return true
+      
+      console.log "phantomJS : opening URL #{event.url}" if @debug
       
       page.open event.url, (status) =>
         console.log "phantomJS : opened site? ", status if @debug
@@ -224,4 +233,15 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     @setting.exclude = []
     @_save()
     return true
+    
+  _loadPlugins:()->
+    plugins = loadFileIn path.resolve __dirname, 'plugins'
+    
+    for plugin in plugins
+      try
+        plugin.module @
+        console.log "loaded plugin from #{plugin.path}" if @debug
+      catch e
+        console.log "fail to load plugin from #{plugin.path} due to", e
+        
 module.exports = CommandTitle
