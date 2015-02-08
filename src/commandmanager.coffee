@@ -243,10 +243,10 @@ class CommandManager extends EventEmitter
     identifierRegex = escapeRegex @identifier
     
     if 0 == text.search identifierRegex
-      argsText = text.replace identifierRegex, ""
+      argsText = text.replace @identifier, ""
     else
       argsText = text
-      
+    
     argsText = argsText.replace /^\s+/g, ""
     
     args = argsText.split(" ")
