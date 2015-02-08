@@ -13,7 +13,7 @@ module.exports = function(grunt) {
       }
     },
     clean:  {
-      js: ["lib/**/*.js"]
+      js: ["lib/**/*"]
     },
     copy: {
       main: {
