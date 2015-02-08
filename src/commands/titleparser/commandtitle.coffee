@@ -2,8 +2,12 @@ virtual_class = require '../../virtualclass.js'
 Icommand = require '../../icommand.js'
 {EventEmitter} = require('events')
 phantom = require 'phantom'
+phantomjs = require 'phantomjs'
 loadFileIn = require '../../folderloader.js'
 path = require 'path'
+
+phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
+
 ###
  * emit : parseurl
  * emit : beforecreate
@@ -21,10 +25,11 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       'strict' : /https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&\/=]*/g
     }
     @ph = null
-    phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {onStdout : ()->null},(ph)=>
+    phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : ()->null},(ph, error)=>
       @ph = ph
       console.log 'phantom instance created'
-    
+      if error
+        console.log error
     @_loadPlugins()
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->

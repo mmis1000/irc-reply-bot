@@ -239,9 +239,14 @@ class CommandManager extends EventEmitter
     if not result
       #it seems it isn't indentified by a identifier and nor a keyword, so return at fast as possible
       return false
-    if 0 == text.search escapeRegex @identifier
-      argsText = text.replace @identifier, ""
     
+    identifierRegex = escapeRegex @identifier
+    
+    if 0 == text.search identifierRegex
+      argsText = text.replace identifierRegex, ""
+    else
+      argsText = text
+      
     argsText = argsText.replace /^\s+/g, ""
     
     args = argsText.split(" ")
