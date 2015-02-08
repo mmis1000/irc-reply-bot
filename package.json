@@ -11,6 +11,8 @@
   "dependencies": {
     "irc": "~0.3.7",
     "net-ping": "^1.1.11",
+    "phantom": "^0.7.2",
+    "phantomjs": "^1.9.15",
     "request": "^2.52.0"
   },
   "devDependencies": {
