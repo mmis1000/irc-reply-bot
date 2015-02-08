@@ -1,11 +1,11 @@
 var config = {
   host : "chat.freenode.net",
-  nick : "mmis1000_bot",
-  channel : "#ysitd",
+  nick : "repltbot",
+  channel : "#test5566",
   pingTimeout : 600 * 1000,
-  identifier : "&",
+  identifier : "*",
   floodProtection : 1000,
-  saveFolder : "save2",
+  saveFolder : "save",
   saveName : "cm.json",
   init : function (commandManager, helper) {
     var path = require("path");
