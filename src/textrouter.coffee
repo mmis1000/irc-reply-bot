@@ -5,6 +5,7 @@ Senter = require './senter.js'
 class TextRouter extends EventEmitter
   constructor: ()->
     @maxLength = 350
+  
   output : (message, to)->
     if Array.isArray message
       message = message.join "\n"
@@ -22,22 +23,33 @@ class TextRouter extends EventEmitter
       @emit "output", item, to
     
   input : (message, from, to, channal)->
-    senter = new Senter from, to, message, channal
-    @emit "input", message, senter
-
+    sender = new Senter from, to, message, channal
+    @emit "input", message, sender
+    
+  inputMe : (message, from, to, channal)->
+    sender = new Senter from, to, message, channal
+    @emit "input_me", message, sender
+  
   whois : (user, callback)->
     @emit "whois", user, callback
     
   names : (channal, callback)->
     @emit "names", channal, callback
-
+  
+  notice : (nick, message)->
+    @emit "notice", nick, message
+    
   raw : (args...)->
     if args.length == 1 && Array.isArray args[0]
       args = args[0]
     
     @emit "raw", args
-
+  
   rplRaw : (reply)->
     @emit "rpl_raw", reply
+  
+  rplJoin : (channel, nick)->
+    sender = new Senter nick, channel, null, channel
+    @emit "rpl_join", channel, sender
 
 module.exports = TextRouter

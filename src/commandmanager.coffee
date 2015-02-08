@@ -1,5 +1,7 @@
 {EventEmitter} = require 'events'
 
+escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
+
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
     @identifier = "!"
@@ -188,9 +190,16 @@ class CommandManager extends EventEmitter
       @handleRaw sender, "text", message, textRouter
       @handleText sender, message, textRouter
     
+    textRouter.on "rpl_join", (channel, sender)=>
+      @handleRaw sender, "join", channel, textRouter
+    
+    textRouter.on "rpl_raw", (reply)=>
+      @handleRaw null, "raw", reply, textRouter
+    
     opList = @storage.get "ops", @defaultOps
     if opList.length == 0
-      textRouter.output "[Warning] no op setted, assume everyone has operator permission"
+      textRouter.on 'connect', ()->
+        textRouter.output "[Warning] no op setted, assume everyone has operator permission"
 
   handleRaw: (sender, type, contents, textRouter)->
     event = {cancelled : false}
@@ -199,7 +208,7 @@ class CommandManager extends EventEmitter
     return event
     
   handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
-    commandmanager = @
+    commandManager = @
     
     ###
     if sender.sender in @storage.get "banList", []
@@ -212,7 +221,7 @@ class CommandManager extends EventEmitter
           return false
     
     result = false 
-    if (text.search @identifier) != 0 and !isCommand
+    if (text.search escapeRegex @identifier) != 0 and !isCommand
       #handle keywords or none command here
       fromBinding = true
       for keyword in @keywords
@@ -230,7 +239,7 @@ class CommandManager extends EventEmitter
     if not result
       #it seems it isn't indentified by a identifier and nor a keyword, so return at fast as possible
       return false
-    if text.search @identifier == 0
+    if 0 == text.search escapeRegex @identifier
       argsText = text.replace @identifier, ""
     
     argsText = argsText.replace /^\s+/g, ""
@@ -315,7 +324,7 @@ class CommandManager extends EventEmitter
     router.output text, sender.channel
 
   parseArgs: (text)->
-    argsText =  if 0 == (text.search @identifier) then (text.replace @identifier, "") else text
+    argsText =  if 0 == (text.search escapeRegex @identifier) then (text.replace (escapeRegex @identifier), "") else text
     argsText = argsText.replace /^\s*/g, ""
     args = argsText.split(" ")
     return args
@@ -324,7 +333,7 @@ class CommandManager extends EventEmitter
     if args.length > 2
       return false
     if args.length == 1
-      message = "all commands : "
+      message = ""
       for command, index in @commands
         message += command
         if @commandAliasMap[command].length > 0

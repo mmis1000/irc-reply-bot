@@ -62,7 +62,7 @@ class CommandRegex extends Icommand
       sender.target.search '#'
       return
     
-    tags = (/^([a-zA-Z0-9_]+)\s?[,:]\s?(.+)$/).exec content
+    tags = (/^([a-zA-Z0-9_]+)(?:\s?[,:]\s?|\s)(.+)$/).exec content
     
     maybeACommand = false
     if not tags

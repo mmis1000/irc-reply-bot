@@ -22,6 +22,6 @@ class CommandNotifyAll extends Icommand
     return ["notify everyone on this channel, Usage", "#{commandPrefix}"];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
-    return true
+    commandManager.isOp sender.sender
 
 module.exports = CommandNotifyAll
