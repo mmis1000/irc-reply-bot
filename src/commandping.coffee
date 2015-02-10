@@ -2,6 +2,8 @@ Icommand = require './icommand.js'
 dns = require 'dns'
 ping = require 'net-ping'
 punycode = require 'punycode'
+patch_ping = require './net-ping-hrtime-patch.js'
+patch_ping ping.Session
 
 class CommandPing extends Icommand
   constructor: ()->
@@ -16,8 +18,11 @@ class CommandPing extends Icommand
         return
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : solved server! #{args[1]} is #{address}. Start to ping server"
       
-      @session.pingHost address, (error, target, sent, rcvd)=>
-        ms = rcvd - sent
+      @session.pingHost address, (error, target, sent, rcvd, sent_hr, rcvd_hr)=>
+        console.log arguments
+        sent_hr = sent_hr[0] * 1000 + sent_hr[1] / 1000000
+        rcvd_hr = rcvd_hr[0] * 1000 + rcvd_hr[1] / 1000000
+        ms = (rcvd_hr - sent_hr).toFixed 3
         if error
           commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : fail to ping #{target} due to #{error.toString()}"
           return
