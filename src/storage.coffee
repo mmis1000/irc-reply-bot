@@ -28,7 +28,7 @@ class GM_Storage
   get: (key, defaultValue)->
     #make sure always get newest value
     #@_load()
-    if @cache[key]
+    if @cache[key] != undefined
       @cache[key]
     else if defaultValue?
       defaultValue
