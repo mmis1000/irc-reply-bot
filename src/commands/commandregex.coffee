@@ -11,8 +11,8 @@ class CommandRegex extends Icommand
       think : '認為'
     }
     @enabled = true
-    if storage
-      @enabled = storage.get 'regexReplace', true
+    if @storage
+      @enabled = @storage.get 'regexReplace', true
       
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2 || 0 > ['on', 'off'].indexOf args[1]
