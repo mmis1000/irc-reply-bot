@@ -24,12 +24,17 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       'default' : /https?:\/\/[^\.\s\/]+(?:\.[^\.\s\/]+)+(?:\/[^\s]*)?/g
       'strict' : /https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&\/=]*/g
     }
-    @ph = null
+    @fresh_phs = []
+    @ph = false
+      
+    @_createRunner()
+    ###
     phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : ()->null},(ph, error)=>
       @ph = ph
       console.log 'phantom instance created'
       if error
         console.log error
+    ###
     @_loadPlugins()
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
@@ -137,7 +142,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     if event.canceled
       return true
       
-    @ph.createPage (page) =>
+    @_getRunner().createPage (page) =>
       page.set 'settings.resourceTimeout', 5000
       page.set 'settings.webSecurityEnabled ', false
       page.set 'settings.loadImages', false
@@ -146,6 +151,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       
       @emit 'beforeopen', event
       if event.canceled
+        page.close()
         return true
       
       console.log "phantomJS : opening URL #{event.url}" if @debug
@@ -153,6 +159,10 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       page.open event.url, (status) =>
         console.log "phantomJS : opened site? ", status if @debug
         
+        if status is 'fail'
+          page.close()
+          return true
+          
         event.pageResult = status
         event.queryCallback = ()-> 
           JSON.stringify {
@@ -161,6 +171,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
           }
         @emit 'beforequery', event
         if event.canceled
+          page.close()
           return true
         
         if event.pageResult is 'success'
@@ -169,12 +180,14 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
             
             @emit 'afterquery', event
             if event.canceled
+              page.close()
               return true
             
             if not event.title
               event.title = "[ #{event.result.title} ] - #{event.result.url}"
               
             console.log 'phantomJS : Page title is ' + event.title if @debug
+            page.close()
             event.cb event.title
   
   #configs
@@ -248,5 +261,52 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         console.log "loaded plugin from #{plugin.path}" if @debug
       catch e
         console.log "fail to load plugin from #{plugin.path} due to", e
+  
+  _createRunner:()->
+    phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : (()->null), onStderr : ()->null},(ph, error)=>
+      @fresh_phs.push ph
+      ph.running = 0
+      
+      old_createPage = ph.createPage
+      
+      ph.createPage = (callback)=>
+        ph.running += 1
+        ph.dirty = true
+        old_callback = callback
+        callback = (page)=>
+          #console.log 'create'
+          old_close = page.close
+          page.close = (args...)=>
+            ph.running -= 1
+            #console.log 'closed'
+            old_close.apply page,args
+            @_finishPage()
+          old_callback.call null, page
+        old_createPage.call ph, callback
         
+      #console.log 'phantom instance created'
+      if error
+        console.log error
+      @waiting = false
+      @_freshRunner()
+    @waiting = true
+  
+  _freshRunner:()->
+    if !@ph
+      @ph = @fresh_phs.pop()
+      
+    if @ph.dirty && @ph.running is 0 && @fresh_phs.length > 0
+      @ph.exit()
+      @ph = @fresh_phs.pop()
+      #console.log "runner updated"
+    
+    
+  _finishPage:()->
+    @_freshRunner()
+  
+  _getRunner:()->
+    if not @waiting and @fresh_phs.length is 0 
+      @_createRunner()
+    return @ph
+    
 module.exports = CommandTitle
