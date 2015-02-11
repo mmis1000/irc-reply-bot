@@ -18,7 +18,7 @@ class CommandPy extends Icommand
       if error
         commandManager.send sender, textRouter, 'py: ' + error.toString()
       else
-        commandManager.send sender, textRouter, 'py: ' + body
+        commandManager.send sender, textRouter, 'py: ' + (body.slice 0, 300)
       
     #commandManager.send sender, textRouter, message
     
