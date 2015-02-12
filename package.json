@@ -7,7 +7,7 @@
   "name": "ircbot",
   "description": "test",
   "main": "./index.js",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "dependencies": {
     "irc": "~0.3.7",
     "net-ping": "^1.1.11",

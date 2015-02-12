@@ -16,14 +16,14 @@ var config = {
     var mailboxPath = 'mailbox.json';
     
     
-    var CommandSay = require('./lib/commandsay.js')
-    var CommandRainbow = require('./lib/commandrainbow.js')
-    var CommandRainbow2 = require('./lib/commandrainbow2.js')
-    var CommandLog = require('./lib/commandlog.js')
-    var CommandUptime = require('./lib/commanduptime.js')
-    var CommandPass = require('./lib/commandpass.js')
-    var CommandLookup = require('./lib/commandnslookup.js')
-    var CommandNotifyAll = require('./lib/commandnotifyall.js')
+    var CommandSay = require('./lib/commands/commandsay.js')
+    var CommandRainbow = require('./lib/commands/commandrainbow.js')
+    var CommandRainbow2 = require('./lib/commands/commandrainbow2.js')
+    var CommandLog = require('./lib/commands/commandlog.js')
+    var CommandUptime = require('./lib/commands/commanduptime.js')
+    var CommandPass = require('./lib/commands/commandpass.js')
+    var CommandLookup = require('./lib/commands/commandnslookup.js')
+    var CommandNotifyAll = require('./lib/commands/commandnotifyall.js')
     var CommandRand = require('./lib/commands/commandrand.js')
     var CommandReply = require('./lib/commands/commandreply.js')
     var CommandFortune = require('./lib/commands/fortune')
@@ -57,12 +57,12 @@ var config = {
     }, "title");
     
     helper.safeLoad(function(){
-      var CommandTrace = require('./lib/commandtrace.js')
+      var CommandTrace = require('./lib/commands/commandtrace.js')
       commandManager.register ("trace", new CommandTrace(), ['t']);
     }, "trace");
     
     helper.safeLoad(function(){
-      var CommandPing = require('./lib/commandping.js')
+      var CommandPing = require('./lib/commands/commandping.js')
       commandManager.register ("ping", new CommandPing(), ['p']);
     }, "ping");
     

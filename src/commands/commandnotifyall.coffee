@@ -1,4 +1,4 @@
-Icommand = require './icommand.js'
+Icommand = require '../icommand.js'
 
 class CommandNotifyAll extends Icommand
   constructor: ()->

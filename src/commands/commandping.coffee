@@ -1,8 +1,8 @@
-Icommand = require './icommand.js'
+Icommand = require '../icommand.js'
 dns = require 'dns'
 ping = require 'net-ping'
 punycode = require 'punycode'
-patch_ping = require './net-ping-hrtime-patch.js'
+patch_ping = require '../net-ping-hrtime-patch.js'
 patch_ping ping.Session
 
 class CommandPing extends Icommand

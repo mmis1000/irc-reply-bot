@@ -1,3 +1,4 @@
+#TODO
 Icommand = require '../icommand.js'
 
 class CommandAntiSpam extends Icommand
