@@ -1,0 +1,15 @@
+{
+  "name": "minecraft-status",
+  "main": "./index.js",
+  "version": "0.1.0",
+  "description": "retrieve minecraft status and re format",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "minecraft",
+    "status"
+  ],
+  "author": "mmis1000",
+  "license": "gpl3 and higher"
+}
