@@ -32,6 +32,7 @@ var config = {
     var CommandMorse = require('./lib/commands/commandmorse.js')
     var CommandMe = require('./lib/commands/commandme.js')
     var CommandMail = require('./lib/commands/commandmail.js')
+    var CommandMcStatus = require('./lib/commands/commandmcstatus.js');
     
     
     commandManager.register ("say", new CommandSay, []);
@@ -50,6 +51,7 @@ var config = {
     commandManager.register ("morse", new CommandMorse(), []);
     commandManager.register ("me", new CommandMe(), []);
     commandManager.register ("mail", new CommandMail(helper.createStorage(mailboxPath)), []);
+    commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
     
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')
