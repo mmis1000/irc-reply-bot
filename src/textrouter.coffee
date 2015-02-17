@@ -18,10 +18,14 @@ class TextRouter extends EventEmitter
     
     #console.log temp
     #console.log temp.length
-    
-    for item in temp
-      @emit "output", item, to
-    
+    if ('string' == typeof to) || not to?
+      for item in temp
+        @emit "output", item, to
+    else
+      for person in to
+        for item in temp
+          @emit "output", item, person
+
   input : (message, from, to, channal)->
     sender = new Senter from, to, message, channal
     @emit "input", message, sender
