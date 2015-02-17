@@ -1,22 +1,10 @@
-Icommand = require '../icommand.js'
+Imodule = require '../imodule.js'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 
-class Bind extends Icommand
+class Bind extends Imodule
   constructor: ()->
-    
-  handle: (senter ,text, args, storage, textRouter, commandManager)->
-    textRouter.output "add method to compelete this!"
-    success = false
-    return success
-  
-  help: (commandPrefix)->
-    console.log "add method to override this!"
-    return [];
-  
-  hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
-    return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
     if type == 'init'
@@ -29,8 +17,7 @@ class Bind extends Icommand
         content.text = result
         content.isCommand = true
         content.fromBinding = true
-        console.log result, '1 '
-      console.log content
+    
     return true
   
   _getBinding: (original, commandManager)->
