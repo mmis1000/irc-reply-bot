@@ -21,7 +21,7 @@ class CommandReply extends Icommand
           commandManager.send sender, textRouter, "[#{host}:#{port}] Motd: \x02#{res.description}\x0f Players: \x02#{res.players.online}/#{res.players.max}\x0f Version: \x02#{res.version.name}\x0f"
         else
           commandManager.send sender, textRouter, "[#{host}:#{port}] Currently offline"
-          console.log res
+          #console.log res
     catch e
       commandManager.send sender, textRouter, "McStatus : error during query status : #{e.toString()}"
 
