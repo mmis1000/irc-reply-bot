@@ -2,7 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandRegex extends Icommand
   constructor: (@storage)->
-    @record = 50
+    @record = 10
     @lastMessages = {}
     @locale = {
       preMean : '的'
@@ -10,7 +10,7 @@ class CommandRegex extends Icommand
       postMean : '是：'
       think : '認為'
     }
-    @maxLoop = 10
+    @maxLoop = 50
     @enabled = true
     if @storage
       @enabled = @storage.get 'regexReplace', true
