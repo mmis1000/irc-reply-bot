@@ -59,7 +59,10 @@ class Ban extends Imodule
       handleRaw: (sender, type, content)->return false
     
     @manager.register 'banlist', banListCommand, []
-  
+    
+    @manager.isBanned = @isBanned.bind @
+    
+    
   isBanned: (sender)->
     for i in (@storage.get "banList") || []
       try
