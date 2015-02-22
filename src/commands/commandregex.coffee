@@ -2,7 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandRegex extends Icommand
   constructor: (@storage)->
-    @record = 10
+    @record = 50
     @lastMessages = {}
     @locale = {
       preMean : '的'
@@ -10,9 +10,11 @@ class CommandRegex extends Icommand
       postMean : '是：'
       think : '認為'
     }
+    @maxLoop = 10
     @enabled = true
     if @storage
       @enabled = @storage.get 'regexReplace', true
+      
       
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2 || 0 > ['on', 'off'].indexOf args[1]
@@ -85,8 +87,9 @@ class CommandRegex extends Icommand
       return true
     
     for message, index in @lastMessages[sayer]
-      if message.match result.regex
-        changesMessage = message.replace result.regex, result.replace
+      #if message.match result.regex
+      if false != @_replaceText message, result
+        changesMessage = @_replaceText message, result
         @lastMessages[sayer][index] = changesMessage
         if not referredBy
           textRouter.output "#{sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
@@ -100,36 +103,78 @@ class CommandRegex extends Icommand
     line = text.match /(\\u....|\\x..|\\.|.)/g
     if line[0] != 's' || line[1] != '/'
       return false
+      
+    line = @_splitArray line[2..], '/'
     
-    slashs = (line.filter ((i)->return i=="/")).length
-    #console.log (JSON.stringify line), slashs
-    if 2 == slashs
-      line.push '/'
-      slashs = 3
-    if 3 != slashs
+    
+    if line.length % 2 == 0
+      line.push []
+      
+    #console.log line, line.length, line.length % 2 == 0
+    
+    if line.length < 3
       return false
+      
+    line = line.map (i)-> i.join ''
     
-    slash2 = line.indexOf '/', 2
     
-    regex = line[2..slash2 - 1].join ''
-    #console.log regex
-    if regex.length == 0
+    modifiers = line[-1..][0]
+    line = line[0..-2]
+    
+    regexPairs = []
+    regexPairs.flags = modifiers
+    
+    for item, index in line
+      if index % 2 != 0
+        continue
+      try
+        regex = new RegExp line[index], modifiers
+        replace = line[index + 1].replace /\\(\/|\\)/g, '$1'
+        regexPairs.push {
+          regex : regex
+          replace : replace
+        }
+      catch e
+        console.log e
+    #console.log regexPairs
+    
+    if regexPairs.length == 0
       return false
+    regexPairs
     
-    slash3 = line.indexOf '/', slash2 + 1
+  _replaceText: (text, regexPairs)->
+    useLoop = 0 <= regexPairs.flags.search 'g'
+    maxLoop = if useLoop then @maxLoop else 1
+    #console.log "max loop #{maxLoop}, useLoop #{useLoop}"
+    originalText = ''
     
-    replace = (line[slash2 + 1..slash3 - 1].join '').replace /\\(\/|\\)/g, '$1'
-    #console.log replace
+    looped = 0
+    while maxLoop > looped++
+      originalText = text
+      for pair, index in regexPairs
+        text = text.replace pair.regex, pair.replace
+      if originalText != text
+        modified = true
+      if originalText == text
+        break
     
-    flags = line[slash3 + 1..].join ''
-    #console.log flags
-    
-    try
-      regex = new RegExp regex, flags
-      return {
-        regex : regex
-        replace : replace
-      }
-    catch e
-      return false
+    if modified
+      return text
+    false
+
+  _splitArray: (arr, seperator)->
+    temp = []
+    i = 0
+    while true
+      newI = arr.indexOf seperator, i
+      if newI == -1
+        temp.push arr[i..arr.length - 1]
+        break
+      if newI - 1 >= 0
+        temp.push arr[i..newI - 1]
+      else
+        temp.push []
+      i = newI + 1
+    temp
+      
 module.exports = CommandRegex
