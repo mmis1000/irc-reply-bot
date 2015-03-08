@@ -1,7 +1,7 @@
 var config = {
   host : "chat.freenode.net",
   nick : "repltbot",
-  channel : "#test5566",
+  channel : ["#test5566", "#text5577"],
   pingTimeout : 600 * 1000,
   identifier : "*",
   floodProtection : 1000,
