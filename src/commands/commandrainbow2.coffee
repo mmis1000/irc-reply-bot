@@ -29,7 +29,8 @@ class CommandSay extends Icommand
     
     message = temp.join "\n"
     
-    textRouter.output message, sender.channel
+    commandManager.send sender, textRouter, message
+    
     success = true
     return success
   

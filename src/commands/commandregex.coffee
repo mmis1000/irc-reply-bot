@@ -11,25 +11,25 @@ class CommandRegex extends Icommand
       think : '認為'
     }
     @maxLoop = 50
-    @enabled = true
+    @enabled = {}
     if @storage
-      @enabled = @storage.get 'regexReplace', true
-      
+      @enabled = @storage.get 'regexReplace', {}
+      @enabled = {} if 'object' != typeof @enabled
       
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2 || 0 > ['on', 'off'].indexOf args[1]
       return false
     
     if args[1] is 'on'
-      @enabled = true
+      @enabled[sender.target] = true
       if @storage
-        @storage.set 'regexReplace', true
-        commandManager.send sender, textRouter, "regex module has been enabled"
+        @storage.set 'regexReplace', @enabled
+      commandManager.send sender, textRouter, "regex module has been enabled for #{sender.target}"
     else
-      @enabled = false
+      @enabled[sender.target] = false
       if @storage
-        @storage.set 'regexReplace', false
-        commandManager.send sender, textRouter, "regex module has been disabled"
+        @storage.set 'regexReplace', @enabled
+      commandManager.send sender, textRouter, "regex module has been disabled for #{sender.target}"
 
     success = true
     return success
@@ -53,7 +53,8 @@ class CommandRegex extends Icommand
     return commandManager.isOp sender.sender
 
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    if not @enabled
+    #console.log sender, @enabled
+    if not sender or not @enabled[sender.target]
       return true
     if type isnt "text"
       return true

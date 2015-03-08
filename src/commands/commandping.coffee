@@ -19,7 +19,7 @@ class CommandPing extends Icommand
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : solved server! #{args[1]} is #{address}. Start to ping server"
       
       @session.pingHost address, (error, target, sent, rcvd, sent_hr, rcvd_hr)=>
-        console.log arguments
+        #console.log arguments
         sent_hr = sent_hr[0] * 1000 + sent_hr[1] / 1000000
         rcvd_hr = rcvd_hr[0] * 1000 + rcvd_hr[1] / 1000000
         ms = (rcvd_hr - sent_hr).toFixed 3

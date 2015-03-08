@@ -20,7 +20,7 @@ class CommandReply extends Icommand
       "this command will send to you according to where you exec this command, Usage", 
       "#{commandPrefix} messages.."];
   
-  hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
-    return true
+  hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
+    return not fromBinding
 
 module.exports = CommandReply

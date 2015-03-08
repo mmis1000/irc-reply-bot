@@ -9,12 +9,12 @@ var bootstrapHelper = require("./bootstraphelper.js")(config.saveFolder);
 
 var botName = config.nick
 var server = config.host
-var channel = config.channel
+var channels = config.channels
 
 var msPingTimeout = config.pingTimeout;
 
 var client = new irc.Client(server, botName, {
-    channels: [channel],
+    channels: channels,
     userName: 'replybot',
     realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
 });
@@ -89,9 +89,16 @@ client.on('error', function(err){
 });
 
 textRouter.on("output", function(m, target){
-    target = target || channel;
-    client.say(target, m);
-    console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + '*self* => ' + target + ': ' + m);
+    target = target || channels;
+    if ("string" === typeof target) {
+        client.say(target, m);
+        console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + '*self* => ' + target + ': ' + m);
+    } else {
+        for (var i = 0; i < target.length; i++) {
+            client.say(target[i], m);
+            console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + '*self* => ' + target[i] + ': ' + m);
+        }
+    }
 });
 
 textRouter.on("whois", function(user, callback){
@@ -107,7 +114,7 @@ client.on("raw", function(e){
         botName = e.args[0];
     }
     if (e.command === "JOIN" && botName === e.nick) {
-        textRouter.output('bot connected');
+        //textRouter.output('bot connected');
         textRouter.emit('connect')
     }
     
@@ -120,12 +127,12 @@ client.on("raw", function(e){
 
 client.addListener('message', function (from, to, message) {
     console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " " + from + ' => ' + to + ': ' + message);
-    textRouter.input(message, from, to, channel);
+    textRouter.input(message, from, to, channels);
 });
 
 client.addListener('me', function (from, to, message) {
     console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " (E) " + from + ' => ' + to + ': ' + message);
-    textRouter.inputMe(message, from, to, channel);
+    textRouter.inputMe(message, from, to, channels);
 });
 
 //name list query
