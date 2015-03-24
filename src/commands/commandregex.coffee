@@ -145,6 +145,7 @@ class CommandRegex extends Icommand
     
   _replaceText: (text, regexPairs)->
     useLoop = 0 <= regexPairs.flags.search 'g'
+    useLoop = useLoop and (regexPairs.length > 1)
     maxLoop = if useLoop then @maxLoop else 1
     #console.log "max loop #{maxLoop}, useLoop #{useLoop}"
     originalText = ''

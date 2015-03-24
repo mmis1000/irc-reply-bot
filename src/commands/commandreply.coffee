@@ -21,6 +21,6 @@ class CommandReply extends Icommand
       "#{commandPrefix} messages.."];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
-    return not fromBinding
+    return true
 
 module.exports = CommandReply
