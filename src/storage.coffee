@@ -4,16 +4,22 @@ getFile = (path)->
     fs.readFileSync(path).toString()
   catch e
     null
-setFile = (path, content)->
+
+setFile = (path, content, cb)->
+  fs.writeFile(path, content, cb);
+
+setFileSync = (path, content)->
   fs.writeFileSync(path, content);
 
 class GM_Storage
   constructor: (@savePath)->
     @useQuery = true
     @scheduled = false
-    @saveInterval = 600 * 1000
+    @saveInterval = 60 * 1000
     @cache = null
     @_load()
+    @writing = false
+    @writeNext = false
     
     process.on "exit", ()=>
       console.log "saveing storage dump..."
@@ -61,14 +67,32 @@ class GM_Storage
     #console.log @
     if @useQuery and !noQuery
       if not @scheduled
+        #console.log "[debug] write scheduled"
         setTimeoutR @saveInterval, ()=>
-          JSONText = JSON.stringify @cache, null, 4
-          setFile @savePath, JSONText
+          @_writeFile()
           @scheduled = false
         @scheduled = true
     else
+      @_writeFileSync()
+
+  _writeFileSync: ()->
+    JSONText = JSON.stringify @cache, null, 4
+    setFileSync @savePath, JSONText
+    
+  _writeFile: ()->
+    if not @writing
+      #console.log "[debug] write start"
       JSONText = JSON.stringify @cache, null, 4
-      setFile @savePath, JSONText
-
-
+      setFile @savePath, JSONText, @_onWriteFinish.bind @
+      @writing = true
+    else
+      @writeNext = true
+  
+  _onWriteFinish: ()->
+    #console.log "[debug] write finished"
+    @writing = false
+    if @writeNext
+      @writeNext = false
+      @_writeFile()
+    
 module.exports = GM_Storage
