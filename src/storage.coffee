@@ -15,7 +15,7 @@ class GM_Storage
   constructor: (@savePath)->
     @useQuery = true
     @scheduled = false
-    @saveInterval = 60 * 1000
+    @saveInterval = 600 * 1000
     @cache = null
     @_load()
     @writing = false
