@@ -55,5 +55,16 @@ class TextRouter extends EventEmitter
   rplJoin : (channel, nick)->
     sender = new Senter nick, channel, null, channel
     @emit "rpl_join", channel, sender
-
+  
+  setSelfName : (name)->
+    @_selfName = name
+  
+  getSelfName : (name)->
+    @_selfName
+  
+  setChannels : (channels)->
+    @_channels = channels
+  
+  getChannels : (channels)->
+    @_channels
 module.exports = TextRouter

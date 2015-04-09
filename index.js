@@ -28,7 +28,7 @@ var commandManager = new CommandManager (bootstrapHelper.createStorage(config.sa
 commandManager.identifier = config.identifier;
 config.init(commandManager, bootstrapHelper);
 
-
+textRouter.setChannels(channels);
 (function(){
     
     //handle for netError
@@ -112,6 +112,7 @@ textRouter.on("notice", function(user, message){
 client.on("raw", function(e){
     if (e.command === "rpl_welcome") {
         botName = e.args[0];
+        textRouter.setSelfName(e.args[0]);
     }
     if (e.command === "JOIN" && botName === e.nick) {
         //textRouter.output('bot connected');

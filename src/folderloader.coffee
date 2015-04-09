@@ -20,11 +20,11 @@ loadFiles = (dir)->
   filePaths = getPaths dir
   loadedFiles = []
   #console.log dir, filePaths
-  for path in filePaths
+  for _path in filePaths
     try
       loadedFiles.push
-        path : path
-        module : require path
+        path : _path
+        module : require _path
   loadedFiles
 
 module.exports = loadFiles

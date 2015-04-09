@@ -1,5 +1,6 @@
 Imodule = require '../imodule.js'
-
+BindHelper = require './bindhelper'
+helper = new BindHelper
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 
@@ -12,7 +13,7 @@ class Bind extends Imodule
       @manager = commandManager
       @_init()
     if type == 'before_iscommand'
-      result = @_getBinding content.text, commandManager
+      result = @_getBinding content.text, commandManager, sender, textRouter
       if result != false 
         content.text = result
         content.isCommand = true
@@ -20,15 +21,17 @@ class Bind extends Imodule
     
     return true
   
-  _getBinding: (original, commandManager)->
+  _getBinding: (original, commandManager, sender, router)->
     result = false 
     if (original.search escapeRegex commandManager.identifier) != 0
       #handle keywords or none command here
       for keyword in @keywords
+        newKeyword = helper.compileText keyword, sender, commandManager, router
+        replace = helper.compileText @keywordMap[keyword], sender, commandManager, router
         try
-          if (original.search keyword) >= 0
-            regex = new RegExp keyword
-            text = (regex.exec original)[0].replace regex, @keywordMap[keyword]
+          if (original.search newKeyword) >= 0
+            regex = new RegExp newKeyword
+            text = (regex.exec original)[0].replace regex, replace
             break
         catch e
           console.log e
@@ -97,7 +100,7 @@ class Bind extends Imodule
     if keyword.length < 1
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "\u000304you need to bind at least one word!"
       return true
-    
+    ###
     if  0 == keyword.search "\\^"
       atHead = true
       keyword = keyword.slice 1
@@ -110,7 +113,6 @@ class Bind extends Imodule
       keyword = keyword.slice 0, keyword.length - 1
     else
       atEnd = false
-    
     realLength = keyword.length
     
     if not @manager.isOp sender.sender
@@ -128,6 +130,11 @@ class Bind extends Imodule
     
     if atEnd
       keyword = "#{keyword}$"
+    ###
+    if not @manager.isOp sender.sender
+      keyword = helper.escapeRegex keyword
+    
+    text = args[2..].join " "
     
     if 0 > @keywords.indexOf keyword
       if @manager.isOp sender.sender
