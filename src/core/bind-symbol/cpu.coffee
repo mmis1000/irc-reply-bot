@@ -6,6 +6,18 @@ stats = []
 
 loads = null
 
+style = 
+  red : "\u000304"
+  yellow : "\u000308"
+  green : "\u000309"
+  
+  dark_red : "\u000305"
+  dark_green : "\u000303"
+  orange : "\u000307"
+  
+  bold : "\u0002"
+  reset : "\u000f"
+
 addStat = ()->
   stats.unshift os.cpus()
   stats = stats[0..1]
@@ -33,6 +45,17 @@ getLoads = ()->
   computeLoads()
   return loads
 
+loadToString = (num)->
+  str = style.reset
+  if num < 0.3
+    str += style.dark_green
+  else if num < 0.7
+    str += style.orange
+  else
+    str += style.dark_red
+  str += (num * 100).toFixed 1
+  str += style.reset 
+    
 addStat()
 
 setInterval addStat, intervalMS
@@ -47,21 +70,60 @@ class Cpu
     if args.length is 0
       args.push 'all'
     
+    if args.length is 1
+      args.push -1
+    
     output = ""
     
     current = stats[0]
     
-    for item, index in current
+    loads = getLoads()
+    if args[1] is -1
+      for item, index in current
+        output += "#{style.bold}##{index}:#{style.reset} "
+        if args[0] is 'all'
+          
+          output += "Load #{loadToString loads[index]}% "
+          
+          output += "Clock #{item.speed}mhz "
+          
+          output += "Model #{item.model} \n"
+        
+        if args[0] is 'load'
+          
+          output += "#{loadToString loads[index]}%, "
+        
+        if args[0] is 'clock'
+          
+          output += "#{item.speed}Mhz, "
+        
+        if args[0] is 'model'
+          
+          output += "#{item.model} \n"
+    else
+      item = current[args[1]]
+      if not item
+        return "core #{args[1]} does not exist"
+      
       if args[0] is 'all'
-        output += "[Core #{index}]"
         
-        output += " Load #{(getLoads()[index] * 100).toFixed 1}%"
+        output += "Load #{loadToString loads[index]}% "
         
-        output += " Clock #{item.speed}mhz"
+        output += "Clock #{item.speed}mhz "
         
-        output += " Model #{item.model} \n"
+        output += "Model #{item.model}"
+      
       if args[0] is 'load'
         
-        output += "#{(getLoads()[index] * 100).toFixed 1}% "
+        output += "#{loadToString loads[index]}%, "
+      
+      if args[0] is 'clock'
+        
+        output += "#{item.speed}Mhz, "
+      
+      if args[0] is 'model'
+        
+        output += "#{item.model}n"
+      
     output 
 module.exports = new Cpu
