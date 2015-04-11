@@ -27,10 +27,10 @@ class Bind extends Imodule
       #handle keywords or none command here
       for keyword in @keywords
         newKeyword = helper.compileText keyword, sender, commandManager, router
-        replace = helper.compileText @keywordMap[keyword], sender, commandManager, router
         try
           if (original.search newKeyword) >= 0
             regex = new RegExp newKeyword
+            replace = helper.compileText @keywordMap[keyword], sender, commandManager, router
             text = (regex.exec original)[0].replace regex, replace
             break
         catch e
