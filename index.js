@@ -116,7 +116,8 @@ client.on("raw", function(e){
     }
     if (e.command === "JOIN" && botName === e.nick) {
         //textRouter.output('bot connected');
-        textRouter.emit('connect')
+        textRouter.emit('connect');
+        console.log('connected');
     }
     
     if (e.command === "PRIVMSG" && (/\u0001action\s(.*)\u0001/i).test(e.args[1])) {
