@@ -52,7 +52,7 @@ loadToString = (num)->
   else if num < 0.7
     str += style.orange
   else
-    str += style.dark_red
+    str += style.red
   str += (num * 100).toFixed 1
   str += style.reset 
     
