@@ -94,7 +94,7 @@ class BindHelper
           
           temp[index] = output
         catch e
-          console.log e
+          #console.log e
           temp[index] = ""
     return temp.join ""
 
