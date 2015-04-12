@@ -1,5 +1,5 @@
-{IRouter} = require './textrouter'
-Senter = require './senter.js'
+IRouter = require '../irouter'
+Senter = require '../senter.js'
 
 class PipeRouter extends IRouter
   constructor: (@parentRouter)->
@@ -44,5 +44,15 @@ class PipeRouter extends IRouter
   
   getChannels : (channels)->
     @parentRouter.getChannels channels
-
+  
+  transformResults : (res)->
+    output = []
+    for result in res
+      if result.type is 'output'
+        if Array.isArray typeof result.message
+          output.push result.message.join "\r\n"
+        else
+          output.push result.message
+    output.join '\r\n'
+  
 module.exports = PipeRouter

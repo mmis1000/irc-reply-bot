@@ -1,6 +1,6 @@
-{IRouter} = require './irouter'
-Senter = require './senter.js'
-{UTF8LengthSplit} = require './util.js'
+IRouter = require './irouter'
+Senter = require '../senter.js'
+{UTF8LengthSplit} = require '../util.js'
 
 class TextRouter extends IRouter
   constructor: ()->
@@ -68,7 +68,10 @@ class TextRouter extends IRouter
   getChannels : (channels)->
     @_channels
     
-  async: ()->;
+  async: ()-> 
+    console.log "requested async work"
+    ()->
+      console.log "async work finished"
   addResult: ()->;
   addError: ()->;
   

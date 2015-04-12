@@ -12,9 +12,12 @@ class CommandPing extends Icommand
     if args.length != 2
       return false
     
+    done = textRouter.async()
+    
     dns.lookup (punycode.toASCII args[1]), (err, address, family)=>
       if err
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : fail to find #{args[1]} due to #{err.toString()}"
+        done()
         return
       commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : solved server! #{args[1]} is #{address}. Start to ping server"
       
@@ -25,8 +28,9 @@ class CommandPing extends Icommand
         ms = (rcvd_hr - sent_hr).toFixed 3
         if error
           commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : fail to ping #{target} due to #{error.toString()}"
-          return
-        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : #{target} replied in #{ms} ms"
+        else
+          commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "Ping : #{target} replied in #{ms} ms"
+        done()
     
     return true
   

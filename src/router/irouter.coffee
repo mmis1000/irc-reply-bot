@@ -1,4 +1,4 @@
-{Defer} = require '../defer'
+Defer = require '../defer'
 
 class IRouter extends Defer
   constructor: ()->

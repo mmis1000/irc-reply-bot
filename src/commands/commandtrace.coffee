@@ -20,6 +20,8 @@ class CommandTrace extends Icommand
     if args.length != 2
       return false
     
+    done = textRouter.async()
+    
     dns.lookup (punycode.toASCII args[1]), (err, address, family)=>
       if err
         commandManager.sendPv sender, textRouter, "Trace : fail to find #{args[1]} due to #{err.toString()}"
@@ -32,6 +34,9 @@ class CommandTrace extends Icommand
           commandManager.sendPv sender, textRouter, "Trace : #{target}, Done!"
         else
           commandManager.sendPv sender, textRouter, "Trace : #{target}, Terminated! #{error.toString()}"
+        
+        done()
+        
         return
       
       feedCb = (error, target, ttl, sent, rcvd)->

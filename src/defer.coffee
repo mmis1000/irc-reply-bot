@@ -7,7 +7,25 @@ uuid = ->
 
   s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4()
 
-# emit done (Array buffered_error, Array buffered_result)
+# emit error   Error error
+# emit done    Task task
+# emit finish  Task task
+# emit clear   Array buffered_error, Array buffered_result
+
+class _Task
+  constructor: (display)->
+    @uuid = uuid()
+    
+    display = "unnamed task #{@uuid}" if not display?
+    
+    @display = display
+    @result = null
+    
+    @finished = false # only when correct
+    @error = null # when timeout
+    @done = false # either finish or timeout
+    @clear = false
+    
 
 class Defer extends EventEmitter
   constructor: ()->
@@ -18,18 +36,8 @@ class Defer extends EventEmitter
     @timeout = 20 * 1000 # 20 seconds
   
   async: (display = null)->
-    task = {}
-    task.uuid = uuid()
     
-    display = "unnamed task #{task.uuid}" if display is null
-    
-    task.display = display
-    task.result = null
-    
-    task.finished = false # only when correct
-    task.error = null # when timeout
-    task.done = false # either finish or timeout
-    task.clear = false
+    task = new _Task display
     
     @tasklist.push task
     
@@ -46,10 +54,12 @@ class Defer extends EventEmitter
     
     onTimeout = ()=>
       task.error = new Error "timeout #{task.display}"
+      task.error.type = "task_timeout"
       task.done = true
       
+      
       @_checkUpTesk()
-      console.log 'timeout happend'
+      console.log "timeout happend #{task.display}"
     
     timeout = setTimeout onTimeout, @timeout
     
@@ -65,20 +75,45 @@ class Defer extends EventEmitter
   addResult: (result)->
     @results.push result
     
+  getResults: ()->
+    @transformResults @results.slice 0
+    
+  dropResults: ()->
+    originalResults = @results
+    @results = []
+    originalResults
+    
   addError: (error)->
     @errors.push error
+  
+  getErrors: ()->
+    @errors.slice 0
+    
+  dropErrors: ()->
+    originalErrors = @errors
+    @errors = []
+    originalErrors
+  
+  hasError: ()->
+    @errors.length > 0
+    
+  #implement by subclass to transform result into rhe form you need
+  transformResults: (res)-> res 
   
   _checkUpTesk: (uuid)->
     process.nextTick ()=>
       for task in @tasklist
         if task.done is true
+          @emit 'done', task
           if task.finished
+            @emit 'finish', task
             if task.result?
               #console.log @, @addResult, @addError
               @addResult task.result
           else
             @addError task.error
-          
+            @emit 'error', task.error
+            
           task.clear = true
       
       @tasklist = @tasklist.filter (task)->task.clear is false
@@ -86,13 +121,13 @@ class Defer extends EventEmitter
       if @tasklist.length > 0
         return
       
-      if @errors.length > 0
-        @emit 'done', @errors, @results
+      if @hasError()
+        @emit 'clear', @getErrors(), @getResults()
       else
-        @emit 'done', null, @results
+        @emit 'clear', null, @getResults()
       
-      @errors = []
-      @results = []
+      @dropErrors()
+      @dropResults()
 
 
 module.exports = Defer

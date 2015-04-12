@@ -21,12 +21,15 @@ class CommandTranslate extends Icommand
       uri : "http://api.mymemory.translated.net/get?q=#{encodeURIComponent message}&langpair=#{encodeURIComponent langPair}"
       json : true
     
+    done = textRouter.async()
+    
     request options, (error, res, body)->
       if error
         commandManager.send sender, textRouter, 'translate: ' + error.toString()
       else
         commandManager.send sender, textRouter, 'translate: ' + body.responseData.translatedText
-    
+      done()
+      
     success = true
     return success
   

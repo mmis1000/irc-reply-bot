@@ -19,6 +19,8 @@ class CommandNslookup extends Icommand
     if 0 > @avaliableTypes.indexOf type
       return false
     
+    done = textRouter.async()
+    
     try
       dns.resolve (punycode.toASCII target), type, (err, addresses)=>
         if err
@@ -34,9 +36,11 @@ class CommandNslookup extends Icommand
         
         commandManager.sendPv sender, textRouter, "Lookup : Results for #{target} in type #{type} :"
         commandManager.sendPv sender, textRouter, addresses
+        done()
         return
     catch err
       commandManager.sendPv sender, textRouter, "Lookup : fail to resolve #{target} in type #{type} due to #{err.toString()}"
+      done()
       
     return true
   
