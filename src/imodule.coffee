@@ -36,6 +36,7 @@ class Imodule extends Icommand
     message += ((Object.keys @commandMap).join ', ')
     message += '\r\n'
     message += """
+      run sub command with #{commandPrefix} help [subcommand]
       show help message of sub commands by #{commandPrefix} help [subcommand]
       show current message with #{commandPrefix} help
     """
