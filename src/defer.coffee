@@ -33,8 +33,8 @@ class Defer extends EventEmitter
     @results = []
     @errors = []
     
-    @timeout = 20 * 1000 # 20 seconds
-  
+    @timeout = -1 # no timeout default
+    
   async: (display = null)->
     
     task = new _Task display
@@ -60,8 +60,8 @@ class Defer extends EventEmitter
       
       @_checkUpTesk()
       console.log "timeout happend #{task.display}"
-    
-    timeout = setTimeout onTimeout, @timeout
+    if @timeout isnt -1
+      timeout = setTimeout onTimeout, @timeout
     
     runner
   
@@ -100,7 +100,10 @@ class Defer extends EventEmitter
   #implement by subclass to transform result into rhe form you need
   transformResults: (res)-> res 
   
-  _checkUpTesk: (uuid)->
+  forceCheck: ()->
+    process.nextTick @_checkUpTesk.bind @
+  
+  _checkUpTesk: ()->
     process.nextTick ()=>
       for task in @tasklist
         if task.done is true

@@ -5,7 +5,7 @@ Senter = require '../senter.js'
 class TextRouter extends IRouter
   constructor: ()->
     @maxLength = 350
-  
+    super
   output : (message, to)->
     if Array.isArray message
       message = message.join "\n"

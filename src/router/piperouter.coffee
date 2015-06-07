@@ -3,6 +3,7 @@ Senter = require '../senter.js'
 
 class PipeRouter extends IRouter
   constructor: (@parentRouter)->
+    super
   
   output : (message, to)->
     @addResult

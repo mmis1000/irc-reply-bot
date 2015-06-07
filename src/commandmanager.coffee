@@ -187,6 +187,7 @@ class CommandManager extends EventEmitter
   load: (moudle)->
     @modules.push moudle
     moudle.handleRaw null, 'init', null, null, @
+    @register moudle.name, moudle, []
   
   getStorage: ()->
     @storage
