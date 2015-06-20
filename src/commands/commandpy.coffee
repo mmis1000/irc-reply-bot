@@ -10,6 +10,8 @@ class CommandPy extends Icommand
     message = args[1..].join " "
     message = message.replace /\\n/g, "\n"
     
+    done = textRouter.async()
+    
     options =
       timeout : 10000
       uri : "http://tumbolia.appspot.com/py/#{encodeURIComponent message}"
@@ -19,6 +21,7 @@ class CommandPy extends Icommand
         commandManager.send sender, textRouter, 'py: ' + error.toString()
       else
         commandManager.send sender, textRouter, 'py: ' + (body.slice 0, 300)
+      done()
       
     #commandManager.send sender, textRouter, message
     

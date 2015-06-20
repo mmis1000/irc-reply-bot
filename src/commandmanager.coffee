@@ -1,7 +1,7 @@
 {EventEmitter} = require 'events'
 Bind = require './core/bind.js'
 Ban = require './core/ban.js'
-
+Icommand = require './icommand'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
@@ -177,6 +177,9 @@ class CommandManager extends EventEmitter
       @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
 
   register: (keyword, iCommand, aliasList)->
+    if not iCommand instanceof Icommand
+      iCommand = Icommand.__createAsInstance__ iCommand
+    
     @commands.push keyword
     @commandMap[keyword] = iCommand
     @commandAliasMap[keyword] = aliasList
@@ -187,6 +190,7 @@ class CommandManager extends EventEmitter
   load: (moudle)->
     @modules.push moudle
     moudle.handleRaw null, 'init', null, null, @
+    @register moudle.name, moudle, [] if moudle.name isnt null
   
   getStorage: ()->
     @storage

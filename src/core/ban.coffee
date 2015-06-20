@@ -2,6 +2,8 @@ Imodule = require '../imodule.js'
 
 class Ban extends Imodule
   constructor: ()->
+    super
+    @name = 'ban'
   
   handleRaw: (sender, type, content, textRouter, commandManager, event)->
     if type == 'init'
@@ -19,7 +21,7 @@ class Ban extends Imodule
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
         @_commandBan sender ,text, args, storage, textRouter, commandManager
       help: (commandPrefix)->
-        return ["command unbind command from keyword! usage : ",
+        return ["command ban a user! usage : ",
           "#{commandPrefix} nick"
         ]
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
@@ -28,13 +30,13 @@ class Ban extends Imodule
         return commandManager.isOp sender.sender
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'ban', banCommand, []
+    @registerCommand 'add', banCommand, []
     
     unbanCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
         @_commandUnban sender ,text, args, storage, textRouter, commandManager
       help: (commandPrefix)->
-        return ["command unbind command from keyword! usage : ",
+        return ["command unban a user! usage : ",
           "#{commandPrefix} nick"
         ]
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
@@ -43,22 +45,23 @@ class Ban extends Imodule
         return commandManager.isOp sender.sender
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'unban', unbanCommand, []
+    @registerCommand 'remove', unbanCommand, []
     
     banListCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
         @_commandBanList sender ,text, args, storage, textRouter, commandManager
       help: (commandPrefix)->
-        return ["command show banned user! usage : ",
+        return ["command show banned users! usage : ",
           "#{commandPrefix}"
         ]
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
         if fromBinding
           return false
+        #console.log 'per miss ', sender.sender, commandManager.isOp sender.sender
         return commandManager.isOp sender.sender
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'banlist', banListCommand, []
+    @registerCommand 'list', banListCommand, []
     
     @manager.isBanned = @isBanned.bind @
     
@@ -99,7 +102,7 @@ class Ban extends Imodule
   _commandBanList: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 1
       return false
-    textRouter.output("all bannned user : #{@storage.get 'banList'}", sender.sender)
+    textRouter.output("all bannned user : #{@storage.get 'banList', []}", sender.sender)
     return true
     
 module.exports = Ban

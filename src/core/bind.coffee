@@ -6,7 +6,8 @@ escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class Bind extends Imodule
   constructor: ()->
-  
+    super
+    @name = 'bind'
   handleRaw: (sender, type, content, textRouter, commandManager)->
     if type == 'init'
       @storage = commandManager.getStorage()
@@ -51,7 +52,7 @@ class Bind extends Imodule
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'bind', bindCommand, []
+    @registerCommand 'add', bindCommand, []
     
     bindAppendCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
@@ -63,7 +64,7 @@ class Bind extends Imodule
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'bindappend', bindAppendCommand, []
+    @registerCommand 'append', bindAppendCommand, []
     
     unbindCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
@@ -75,7 +76,7 @@ class Bind extends Imodule
       hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=> return not fromBinding
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'unbind', unbindCommand, []
+    @registerCommand 'remove', unbindCommand, []
     
     bindListCommand =
       handle: (sender ,text, args, storage, textRouter, commandManager)=>
@@ -87,7 +88,7 @@ class Bind extends Imodule
       hasPermission: => return true
       handleRaw: (sender, type, content)->return false
     
-    @manager.register 'bindlist', bindListCommand, []
+    @registerCommand 'list', bindListCommand, []
   
   _commandBind: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 3

@@ -15,6 +15,8 @@ class CommandReply extends Icommand
     host = args[1]
     port = port || 25565
     
+    done = textRouter.async()
+    
     try
       mcStatus.status host, port, (res)->
         if res.online
@@ -22,8 +24,10 @@ class CommandReply extends Icommand
         else
           commandManager.send sender, textRouter, "[#{host}:#{port}] Currently offline"
           #console.log res
+        done()
     catch e
       commandManager.send sender, textRouter, "McStatus : error during query status : #{e.toString()}"
+      done()
 
     success = true
     return success

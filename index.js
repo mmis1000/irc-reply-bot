@@ -1,4 +1,4 @@
-const TextRouter = require('./lib/textrouter.js');
+const TextRouter = require('./lib/router/textrouter.js');
 const Storage = require('./lib/storage.js');
 const CommandManager = require('./lib/commandmanager.js');
 const path = require('path');

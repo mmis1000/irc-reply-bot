@@ -14,6 +14,8 @@ class CommandFindFastestServer extends Icommand
     target = args[1]
     mainDomain = (punycode.toASCII target)
     
+    done = textRouter.async()
+    
     try
       dns.resolve mainDomain, 'A', (err, addresses)=>
         if err
@@ -55,7 +57,7 @@ class CommandFindFastestServer extends Icommand
         check = ()=>
           if (AddressStates.filter (i)->not i.finished).length != 0
             return
-          console.log AddressStates
+          #console.log AddressStates
           AddressStates = AddressStates.filter (i)->null != i.ping
           AddressStates = AddressStates.sort (a, b)->a.ping - b.ping 
           AddressStates = AddressStates[0..9]
@@ -64,7 +66,8 @@ class CommandFindFastestServer extends Icommand
           for item in AddressStates
             commandManager.sendPv sender, textRouter, "FindFastestServer : #{i}. #{item.address} (#{item.ping}ms) #{if item.reverseLookup then item.reverseLookup else ''}"
             i++
-            
+          done()
+          
           #commandManager.sendPv sender, textRouter, "Lookup : Results for #{target} in type #{type} :"
           
         commandManager.sendPv sender, textRouter, "FindFastestServer : IPs for #{target} has been resolved, start to ping server"
@@ -72,6 +75,7 @@ class CommandFindFastestServer extends Icommand
         return
     catch err
       commandManager.sendPv sender, textRouter, "FindFastestServer : fail to resolve #{target} in type A due to #{err.toString()}"
+      done()
       
     return true
   
