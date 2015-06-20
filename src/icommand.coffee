@@ -14,6 +14,12 @@ class Icommand
   hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
     return true
   
-  handleRaw: (sender, type, content, textRouter, commandManager)->return false
-
+  handleRaw: (sender, type, content, textRouter, commandManager, event)->return false
+  
+  __createAsInstance__: (obj)->
+    instance = new Icommand
+    for key, value of obj
+      instance[key] = value
+    instance
+  
 module.exports = Icommand
