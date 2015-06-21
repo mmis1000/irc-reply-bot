@@ -143,7 +143,7 @@ class CommandSay extends Icommand
     if args[0] is "log"
       return false
     
-    isPrivate = (sender.target != sender.channel)
+    isPrivate = 0 != (sender.target.search /#/)
     
     @logs.push
       time : Date.now()
