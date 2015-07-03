@@ -118,9 +118,9 @@ Bot.prototype.postMessage = function (command, data) {
   });
 };
 
+//fix exit Handler
 Bot.prototype._setExitHandle = function () {
   var self = this;
-  //fix exit Handler
   process.stdin.resume();//so the program will not close instantly
 
   function exitHandler(options, err) {
@@ -137,7 +137,7 @@ Bot.prototype._setExitHandle = function () {
       
       self._beforeExit(function () {
         if (options.originalListeners && options.originalListeners.length > 0) {
-          // call the listeners which was removed from process
+          // call the listeners which were removed from process previously
           options.originalListeners.forEach(function(listener) {
             listener.call(null, err)
           });
@@ -148,21 +148,30 @@ Bot.prototype._setExitHandle = function () {
     };
   }
 
-  //do something when app is closing
+  // do something when app is closing
   process.on('exit', exitHandler.bind(null,{cleanup:true}));
   
-  //catches ctrl+c event
+  // catches ctrl+c event
   var originalSIGINT = process.listeners('SIGINT');
   process.removeAllListeners('SIGINT');
   process.on('SIGINT', exitHandler.bind(null, {exit:true, originalListeners:originalSIGINT}));
   
-  //catches signal
+  // catches signal
   var originalSIGTERM = process.listeners('SIGTERM');
   process.removeAllListeners('SIGTERM');
   process.on('SIGTERM', exitHandler.bind(null, {exit:true, originalListeners:originalSIGTERM}));
 
-  //catches uncaught exceptions
+  // catches uncaught exceptions
   process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
+
+  // win32 Signal workaround
+  if (process.platform === "win32" && this.isChild === true) {
+    process.on('message', function (ev) {
+      if (ev.command === 'exit') {
+        process.exit('SIGINT');
+      }
+    })
+  }
 
 }
 

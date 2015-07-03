@@ -52,6 +52,7 @@ function Loader (filename, scriptOptions) {
 util.inherits(Loader, EventEmitter);
 
 Loader.prototype.initBot = function () {
+  console.log('\r\n[Loader] starting script...\r\n')
   var childEnv = {};
   
   for (var name in process.env) {
@@ -95,6 +96,7 @@ Loader.prototype.shutdownScript = function (cb_) {
   
   this.currentScript = null;
   
+  // fire callback directly when the process is actually terminated
   if (exitingScript.exited) {
     if (exitingScript.callbackFired) { return; }
     process.nextTick(cb);
@@ -119,7 +121,21 @@ Loader.prototype.shutdownScript = function (cb_) {
     cb();
     exitingScript.callbackFired = true;
   });
-  exitingScript.kill('SIGINT');
+  
+  // firing error when script doesn't stop
+  setTimeout(function () {
+    if (exitingScript.callbackFired !== true) {
+      exitingScript.emit(new Error('exit timeout'))
+    }
+  }, this.sigKillWait);
+
+  
+  // win32 Signal workaround
+  if (process.platform === "win32") {
+    exitingScript.send({command : 'exit'})
+  } else {
+    exitingScript.kill('SIGINT');
+  }
 };
 
 Loader.prototype.onScriptEvent = function(event) {
