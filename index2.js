@@ -3,19 +3,19 @@ var Loader = require('./loader')
 var loader = new Loader('./bot.js')
 loader.initBot();
 
+loader.on('exit', function () {
+  process.exit();
+})
 
 process.stdin.resume();//so the program will not close instantly
 process.nextTick(function() {
 function exitHandler(options, err) {
-  if (options.cleanup) console.log('[Loader] clean');
+  if (options.cleanup) console.log('[Loader] cleaning up...');
   if (err) {
     console.log(err.stack);
   }
   if (options.exit) {
     loader.destroy();
-    loader.on('exit', function () {
-      process.exit();
-    })
   };
 }
 
