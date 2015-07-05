@@ -1,6 +1,9 @@
 Icommand = require '../icommand.js'
 mongoose = require 'mongoose'
 moment = require 'moment'
+
+escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
+
 class CommandLogs extends Icommand
   constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages')->
     @defaultPageShow = 10
@@ -106,6 +109,29 @@ class CommandLogs extends Icommand
     query = {}
     if flags['-b']?
       query.isOnChannel = false
+    
+    if flags['-t']?
+      regexSet = /^\/(.+)\/([gimy]*)/.exec flags['-t'][0]
+      if regexSet
+        query.to = {$regex: regexSet[1], $options: regexSet[2]}
+      else
+        query.to = {$regex: (escapeRegex flags['-t'][0])} 
+    
+    if flags['-s']?
+      regexSet = /^\/(.+)\/([gimy]*)/.exec flags['-s'][0]
+      if regexSet
+        query.from = {$regex: regexSet[1], $options: regexSet[2]}
+      else
+        query.from = {$regex: (escapeRegex flags['-s'][0])} 
+    
+    if flags['-m']?
+      regexSet = /^\/(.+)\/([gimy]*)/.exec flags['-m'][0]
+      if regexSet
+        query.message = {$regex: regexSet[1], $options: regexSet[2]}
+      else
+        query.message = {$regex: (escapeRegex flags['-m'][0])} 
+    
+    
     ###
     if flags['-t']?
       if flags['']
