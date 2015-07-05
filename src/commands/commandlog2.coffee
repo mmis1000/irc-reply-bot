@@ -1,32 +1,152 @@
 Icommand = require '../icommand.js'
-
-
+mongoose = require 'mongoose'
+moment = require 'moment'
 class CommandLogs extends Icommand
-  constructor: (@dbStorage)->
-    @maxRecord = 20
+  constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages')->
     @defaultPageShow = 10
-    @userPageShowMax = 15
+    @pageShowMax = 15
+    @Message = null
     
-    @logs = @storage.get "talks", []
+    mongoose.connect @dbpath
+    
+    db = mongoose.connection;
+    db.on 'error', @_onDbConnect.bind @
+    db.once 'open', @_onDbConnect.bind @, null
+    
+  _onDbConnect: (err, cb)=>
+    if err
+      console.error 'db error : '
+      console.error err
+      return
+    
+    MessageSchema = mongoose.Schema {
+      from : String
+      to : String
+      message : String
+      isOnChannel : Boolean
+      time : { type : Date, index : true }
+    }, { collection : @collectionName }
+    
+    self = @
+    MessageSchema.methods.toString = ()->
+      timeStamp = moment @time
+      .utcOffset self.timezone
+      .locale self.locale
+      .format 'YYYY-MM-DD hh:mm:ss a'
+      
+      "#{timeStamp} #{@from} => #{@to}: #{@message}"
+    
+    @Message =  mongoose.model 'Message', MessageSchema
+    
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 2
       return false
     
-    list = @logs
+    if args[1] is "find"
+      @_findlog(sender ,text, args, storage, textRouter, commandManager)
+    else
+      false
+  ###
+  flagSet
+    {
+      '-s' : 1
+      '-t' : 1
+      '-m' : 1
+      '-r' : 2
+    }
+  ###
+  _extractFlags: (args, flagSet)->
+    args = args[0..]
+    flags = Object.keys flagSet
+    find = (arr, list)->
+      for item in list
+        index = arr.indexOf item
+        if index isnt -1
+          return {
+            index : index
+            item : item
+          }
+      null
     
-    if not commandManager.isOp sender.sender
-      list = list.filter (obj)->
-        return not obj.private
+    flagResult = {}
     
-    switch args[1]
-      when "show"
-        @_showlog(sender ,text, args, storage, textRouter, commandManager, list)
-      when "find"
-        @_findlog(sender ,text, args, storage, textRouter, commandManager, list)
-      else
-        false
+    while result = find args, flags
+      temp = args.splice result.index, flagSet[result.item] + 1
+      flagResult[result.item] = temp[1..]
     
+    {
+      args : args
+      flags : flagResult
+    }
+  _findlog: (sender ,text, args, storage, textRouter, commandManager)->
+    {args, flags} = @_extractFlags args, {
+      '-s' : 1
+      '-t' : 1
+      '-m' : 1
+      '-r' : 2
+      '-b' : 0
+    }
+    
+    
+    return false if args.length < 2 or args.length > 4
+
+    return false if args[1] isnt 'find'
+    
+    args[2] = parseInt args[2], 10 if args[2]?
+    args[3] = parseInt args[3], 10 if args[3]?
+    
+    return false if args[2] and isNaN args[2]
+    return false if args[3] and isNaN args[3]
+    
+    pageNumber = args[2] || 1
+    pageSize = args[3] || @defaultPageShow
+    pageSize = @pageShowMax if pageSize > @pageShowMax
+    
+    query = {}
+    if flags['-b']?
+      query.isOnChannel = false
+    ###
+    if flags['-t']?
+      if flags['']
+    ###
+    
+    query = @Message.find query 
+    
+    query.count (err, count)=>
+      console.log err if err?
+      return if err?
+      
+      total = count
+      
+      #console.log count
+      #console.log (pageNumber - 1) * pageSize
+      #console.log pageSize
+      
+      maxPage = Math.ceil total / pageSize
+      
+      query.skip (pageNumber - 1) * pageSize
+      
+      # fix error during request last page of log
+      if maxPage is pageNumber
+        pageSize = total % pageSize
+        
+      query.limit pageSize
+      
+      .sort { 'time' : -1}
+      query.find (err, messages)=>
+        console.log err if err?
+        return if err?
+        
+        #console.log messages
+        messages.reverse()
+        
+        for message in messages
+          commandManager.sendPv sender, textRouter, message.toString()
+        
+        commandManager.sendPv sender, textRouter, "Page #{pageNumber} of total #{maxPage} Pages. Time Zone is #{@timezone}"
+    
+  ###
   _showlog: (sender ,text, args, storage, textRouter, commandManager, list)->
     if args.length > 4
       return false
@@ -123,37 +243,47 @@ class CommandLogs extends Icommand
       allPage :totalPage
     
     return filteredList
-  
+  ###
   help: (commandPrefix)->
     return [
       "view recent talks, this command will force send to you instead of channel ",
       "Usage:", 
-      "#{commandPrefix} show [page, default to 1 if omit] [records per page, default to #{@defaultPageShow} if omit]",
-      "#{commandPrefix} find [sender/text] [text] [page, default to 1 if omit] [records per page, default to #{@defaultPageShow} if omit]"
-      "#{commandPrefix} find [date] [yyyy-mm-dd|today] [page, default to 1 if omit] [records per page, default to #{@defaultPageShow} if omit]"
+      "#{commandPrefix} find [-flags] [page, default to 1 if omit] [records per page, default to #{@defaultPageShow} if omit]",
+      "flags :",
+      "    -b : show message to the bot only"
+      "    -s [senderRegex]: show message from sender only",
+      "    -t [targetRegex]: show message to target only",
+      "    -m [messageRegex] : show message matches specific regex only",
+      "    -r [startTime] [endTime] : shoe message in range only",
+      "example: #{commandPrefix} find -t channelName 1 10",
+      "notes : if the regex field is not regex, it will be used as a string to do full match"
     ]
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    if type isnt "text"
-      return false
+    return false  if type isnt "text"
     
     args = commandManager.parseArgs content
-    if args[0] is "log"
-      return false
     
-    isPrivate = (sender.target != sender.channel)
+    return false if args[0] is "log"
     
-    @logs.push
-      time : Date.now()
+    onChannel = 0 is sender.target.search /#/
+    
+    message = new @Message {
       from : sender.sender
       to : sender.target
-      private : isPrivate
       message : content
+      isOnChannel : onChannel
+      time : new Date
+    }
     
-    @storage.set "talks", @logs
+    message.save (err)->
+      if err?
+        console.error "error during save message: #{err.toString()}"
+      null
+    
     return true
 
 module.exports = CommandLogs
