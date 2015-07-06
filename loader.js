@@ -225,7 +225,7 @@ Loader.prototype.updateTimeout = function () {
     if (ev.command === 'pong' && ev.data === id) {
       //console.log('[Loader] bot heart beating...')
       clearTimeout(timeoutId);
-      script.removeListener('message', timeoutListener);
+      script.removeListener('message', callbackListener);
     }
   };
   
@@ -238,6 +238,7 @@ Loader.prototype.updateTimeout = function () {
   var timeoutListener = function () {
     var error = new Error('script failed to response')
     error.reason = 'script failed to response';
+    script.removeListener('message', callbackListener);
     if (script.exiting !== true) {
       this.shutdownScript(function () {
         this.afterDestroyScript(error);
