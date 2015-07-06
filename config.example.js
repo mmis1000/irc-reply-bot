@@ -53,6 +53,14 @@ var config = {
     commandManager.register ("mail", new CommandMail(helper.createStorage(mailboxPath)), []);
     commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
     
+    var CommandTranslate = require('./lib/commands/commandtranslate.js');
+    commandManager.register ("translate", new CommandTranslate(), ['tr']);
+
+    
+    // mongodb based log command
+    //var CommandLog2 = require('./lib/commands/commandlog2.js');
+    //commandManager.register ("log", new CommandLog2('mongodb://localhost/test', '+08:00', 'zh-tw'), []);
+    
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')
       commandManager.register ("title", new CommandTitle(helper.createStorage(titleParserConfigPath)), []);

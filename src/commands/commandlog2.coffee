@@ -131,6 +131,31 @@ class CommandLogs extends Icommand
       else
         query.message = {$regex: (escapeRegex flags['-m'][0])} 
     
+    if flags['-r']?
+      regex = /^(\d+)\/(\d+)(?:\/(\d+))?$/
+      timeFrom = regex.exec flags['-r'][0]
+      timeTo = regex.exec flags['-r'][1]
+      if timeFrom and timeTo
+        currentYear = (moment()).utcOffset @timezone
+        .year();
+        
+        timeFrom[3] =  timeFrom[3] || currentYear
+        timeTo[3] =  timeTo[3] || currentYear
+        
+        timeFrom = (moment "#{timeFrom[3]}/#{timeFrom[1]}/#{timeFrom[2]} #{@timezone}", "YYYY/MM/DD Z").toDate()
+        timeTo = (moment "#{timeTo[3]}/#{timeTo[1]}/#{timeTo[2]} #{@timezone}", "YYYY/MM/DD Z").add 1, 'd'
+        .toDate()
+        
+        if (moment timeTo).isBefore timeFrom
+          [timeFrom, timeTo] = [timeTo, timeFrom]
+          
+        query.time = {
+          $gte : timeFrom
+          $lt : timeTo
+        }
+      else
+        return false
+    
     
     ###
     if flags['-t']?
