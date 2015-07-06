@@ -52,7 +52,8 @@ function Loader (filename, scriptOptions) {
 util.inherits(Loader, EventEmitter);
 
 Loader.prototype.initBot = function () {
-  console.log('\r\n[Loader] starting script...\r\n')
+  this.initRetry--;
+  console.log('=============================================\r\n[Loader] starting script...\r\n')
   var childEnv = {};
   
   for (var name in process.env) {
@@ -189,6 +190,12 @@ Loader.prototype.onScriptTimeout = function(event) {
 */
 Loader.prototype.afterDestroyScript = function(error) {
   console.log('[Loader] after script destroy...');
+  
+  if (this.initRetry === 0) {
+    this.scheduleExit = true;
+    error = new Error('Too much init failure !!!')
+    error.reason = 'Too much init failure !!!';
+  }
   if (!this.scheduleExit) {
     // recreate a new bot
     this.initBot();
