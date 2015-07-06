@@ -2,6 +2,7 @@ var Loader = require('./loader')
 
 var loader = new Loader('./bot.js')
 loader.initBot();
+loader.setTimeout(180 * 1000)
 
 loader.on('exit', function () {
   process.exit();

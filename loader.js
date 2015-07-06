@@ -22,6 +22,11 @@ const path = require("path");
  *         'command' : command,
  *         'data'    : data
  *     }
+ * child_process property
+ *     callbackFired
+ *     exited
+ *     exiting
+ *     inited
  */
 
 function Loader (filename, scriptOptions) {
@@ -33,8 +38,8 @@ function Loader (filename, scriptOptions) {
   this.currentScript = null;
   
   
-  this.timeout = 10000;
-  this.timeoutId = null;
+  this.timeout = 0;
+  this.intervalId = null;
   
   this.sigKillWait = 5000;
   
@@ -93,7 +98,7 @@ Loader.prototype.shutdownScript = function (cb_) {
   exitingScript.removeAllListeners('message');
   exitingScript.removeAllListeners('exit');
   exitingScript.removeAllListeners('error');
-  
+  exitingScript.exiting = true;
   
   this.currentScript = null;
   
@@ -140,9 +145,10 @@ Loader.prototype.shutdownScript = function (cb_) {
 };
 
 Loader.prototype.onScriptEvent = function(event) {
-  console.log('[Loader] got script event %j', event);
+  //console.log('[Loader] got script event %j', event);
   if (event.command === 'init') {
     this.initRetry = this.config.maxInitRetry;
+    this.currentScript.inited = true;
   }
   if (event.command === 'reload') {
     this.shutdownScript(function () {
@@ -204,6 +210,52 @@ Loader.prototype.afterDestroyScript = function(error) {
   } else {
     console.error('[Loader] script exit due to %j', error);
     this.emit('exit', error);
+  }
+};
+
+Loader.prototype.updateTimeout = function () {
+  var script = this.currentScript;
+  var id = Math.random()
+  
+  if (!script || !script.inited) {
+    return;
+  }
+  
+  var callbackListener = function (ev) {
+    if (ev.command === 'pong' && ev.data === id) {
+      //console.log('[Loader] bot heart beating...')
+      clearTimeout(timeoutId);
+      script.removeListener('message', timeoutListener);
+    }
+  };
+  
+  script.on('message', callbackListener);
+  script.send({
+    command : 'ping',
+    data : id
+  })
+  
+  var timeoutListener = function () {
+    var error = new Error('script failed to response')
+    error.reason = 'script failed to response';
+    if (script.exiting !== true) {
+      this.shutdownScript(function () {
+        this.afterDestroyScript(error);
+      }.bind(this));
+    }
+  }.bind(this);
+  
+  var timeoutId = setTimeout(timeoutListener, this.timeout);
+  
+};
+Loader.prototype.setTimeout = function (ms) {
+  if (this.intervalId !== null) {
+    clearInterval(this.intervalId);
+    this.intervalId = null;
+  }
+  this.timeout = ms;
+  if (ms > 0) {
+    this.intervalId = setInterval(this.updateTimeout.bind(this), this.timeout)
   }
 };
 /*
