@@ -107,6 +107,15 @@ class CommandLogs extends Icommand
     pageSize = @pageShowMax if pageSize > @pageShowMax
     
     query = {}
+    
+    #prevent lag
+    startDay = (moment()).subtract 1, 'M'
+    .toDate()
+    
+    query.time = {
+      $gte : startDay
+    }
+    
     if flags['-b']?
       query.isOnChannel = false
     
