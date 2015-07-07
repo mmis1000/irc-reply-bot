@@ -1,5 +1,5 @@
 const CHILD_MARKUP_EVN = require("./enum").CHILD_MARKUP_EVN
-console.log(process.version);
+//console.log(process.version);
 function Bot () {
   this.manager = null;
   this.router = null;
