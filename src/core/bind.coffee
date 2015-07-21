@@ -14,6 +14,7 @@ class Bind extends Imodule
       @manager = commandManager
       @_init()
     if type == 'before_iscommand'
+      return if content.isCommand # don't try to parse already parsed command
       result = @_getBinding content.text, commandManager, sender, textRouter
       if result != false 
         content.text = result
