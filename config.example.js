@@ -34,6 +34,7 @@ var config = {
     var CommandMail = require('./lib/commands/commandmail.js')
     var CommandMcStatus = require('./lib/commands/commandmcstatus.js');
     
+    var CommandDemorse = require('./lib/commands/commanddemorse.js');
     
     commandManager.register ("say", new CommandSay, []);
     commandManager.register ("rainbow", new CommandRainbow, []);
@@ -52,6 +53,8 @@ var config = {
     commandManager.register ("me", new CommandMe(), []);
     commandManager.register ("mail", new CommandMail(helper.createStorage(mailboxPath)), []);
     commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
+    
+    commandManager.register ("demorse", new CommandDemorse(), []);
     
     var CommandTranslate = require('./lib/commands/commandtranslate.js');
     commandManager.register ("translate", new CommandTranslate(), ['tr']);
