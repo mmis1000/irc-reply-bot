@@ -70,12 +70,12 @@ class CommandRegex extends Icommand
     maybeACommand = false
     if not tags
       result = @_parseCommand content
-      maybeACommand = !!content.match /s\//
+      maybeACommand = !!content.match /^s\//
       sayer = sender.sender
     else
       result = @_parseCommand tags[2]
       sayer = tags[1]
-      maybeACommand = !!tags[2].match /s\//
+      maybeACommand = !!tags[2].match /^s\//
       referredBy = sender.sender
     
     #console.log result, @lastMessages[sayer], maybeACommand
