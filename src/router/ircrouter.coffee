@@ -41,6 +41,8 @@ class IrcRouter extends TextRouter
       realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
     }
     @client.on 'join', (channel, nick, message) =>
+      #console.log Object.keys @client.chans
+      @setChannels Object.keys @client.chans
       if nick != @nick
         @rplJoin channel, nick
       return
@@ -87,6 +89,8 @@ class IrcRouter extends TextRouter
     @client.addListener 'me', (from, to, message) =>
       console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' (E) ' + from + ' => ' + to + ': ' + message
       @inputMe message, from, to, @channels
+      # also route the message as text
+      @input "\u0001ACTION #{message} \u0001", from, to, @channels
       return
     
     #name list query
