@@ -12,6 +12,7 @@
     "irc": "~0.3.12",
     "moment": "^2.10.3",
     "mongoose": "^4.0.6",
+    "mubsub": "^1.0.4",
     "net-ping": "^1.1.11",
     "phantom": "^0.7.2",
     "phantomjs": "^1.9.15",

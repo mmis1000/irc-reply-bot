@@ -1,6 +1,7 @@
 Icommand = require '../icommand.js'
 mongoose = require 'mongoose'
 moment = require 'moment'
+mubsub = require 'mubsub'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
@@ -10,12 +11,19 @@ class CommandLogs extends Icommand
     @pageShowMax = 15
     @Message = null
     
+    @MessageChannel = null;
+    
     mongoose.connect @dbpath
     
     db = mongoose.connection;
     db.on 'error', @_onDbConnect.bind @
     db.once 'open', @_onDbConnect.bind @, null
     
+    console.log @dbpath, "#{@collectionName}Trigger"
+    @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
+    #@MessageChannel.subscribe 'update', (obj)->
+    #  console.log '#obj: %j', obj 
+    #@MessageChannel.publish('update', {'command' : 'test'});
   _onDbConnect: (err, cb)=>
     if err
       console.error 'db error : '
@@ -41,7 +49,21 @@ class CommandLogs extends Icommand
     
     @Message =  mongoose.model 'Message', MessageSchema
     
+  triggerDbUpdate: (obj)->
+    #console.log('trigger %j', obj)
     
+    clonedObj = {}
+    
+    clonedObj.from = obj.from
+    clonedObj.to = obj.to
+    clonedObj.time = obj.time
+    clonedObj.isOnChannel = obj.isOnChannel
+    clonedObj.message = obj.message
+    clonedObj._id = obj._id
+    
+    #@MessageChannel.publish('update', {'command' : 'test'});
+    @MessageChannel.publish('update', {'data' : clonedObj});
+  
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 2
       return false
@@ -339,10 +361,13 @@ class CommandLogs extends Icommand
       time : new Date
     }
     
-    message.save (err)->
+    message.save (err, remoteMessage)=>
       if err?
         console.error "error during save message: #{err.toString()}"
+      #console.log 'save complete!'
+      @triggerDbUpdate message
       null
+      
     
     return true
 
