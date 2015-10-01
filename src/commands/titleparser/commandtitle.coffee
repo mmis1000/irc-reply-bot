@@ -106,6 +106,9 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       return true
     if not @setting.enabled
       return true
+    if commandManager.isBanned sender
+      return true
+    
     
     event = {canceled : false}
     event.command = @
