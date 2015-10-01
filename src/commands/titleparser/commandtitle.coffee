@@ -5,7 +5,9 @@ phantom = require 'phantom'
 phantomjs = require 'phantomjs'
 loadFileIn = require '../../folderloader.js'
 path = require 'path'
-
+imgur = require 'imgur'
+tmp = require 'tmp'
+fs = require 'fs'
 phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
 
 ###
@@ -148,7 +150,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     @_getRunner().createPage (page) =>
       page.set 'settings.resourceTimeout', 5000
       page.set 'settings.webSecurityEnabled ', false
-      page.set 'settings.loadImages', false
+      #page.set 'settings.loadImages', false
       page.set 'settings.userAgent', 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1478.0 Safari/537.36'
       event.page = page
       
@@ -158,6 +160,8 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         return true
       
       console.log "phantomJS : opening URL #{event.url}" if @debug
+      
+      event.timeOpen = Date.now()
       
       page.open event.url, (status) =>
         console.log "phantomJS : opened site? ", status if @debug
@@ -187,12 +191,40 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
               return true
             
             if not event.title
-              event.title = "[ #{event.result.title} ] - #{event.result.url}"
+              event.title = "[ #{event.result.title} ] - #{Date.now() - event.timeOpen }ms - #{event.result.url}"
               
             console.log 'phantomJS : Page title is ' + event.title if @debug
-            page.close()
-            event.cb event.title
-  
+            page.set 'viewportSize', { width: 1366, height: 768 }, (result)->
+              console.log "Viewport set to: " + result.width + "x" + result.height
+              
+              tmp.dir (err, dirPath, cleanupCallback)->
+                imagePath = path.resolve dirPath, 'result.jpg'
+                console.log imagePath
+                
+                page.render imagePath, {format: 'jpeg', quality: '90'}, ()->
+                  console.log "file created at #{imagePath}"
+                  
+                  page.close()
+                  
+                  
+                  #starting upload image
+                  imgur.uploadFile imagePath
+                  .then (json)->
+                    console.log json.data.link
+                    event.cb event.title + " - " + json.data.link
+                    try
+                      fs.unlink imagePath, ()->
+                        cleanupCallback()
+                    catch e
+                      console.log e
+                  .catch (err)->
+                    console.error err.message
+                    event.cb event.title
+                    try
+                      fs.unlink imagePath, ()->
+                        cleanupCallback()
+                    catch e
+                      console.log e
   #configs
   _save: ()->
     @storage.set 'titleParser', @setting

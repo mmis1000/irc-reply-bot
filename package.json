@@ -9,14 +9,16 @@
   "main": "./index.js",
   "version": "0.1.0",
   "dependencies": {
+    "imgur": "^0.1.6",
     "irc": "~0.3.12",
     "moment": "^2.10.3",
     "mongoose": "^4.0.6",
     "mubsub": "^1.0.4",
     "net-ping": "^1.1.11",
     "phantom": "^0.7.2",
-    "phantomjs": "^1.9.15",
-    "request": "^2.52.0"
+    "phantomjs": "^1.9.18",
+    "request": "^2.52.0",
+    "tmp": "0.0.28"
   },
   "devDependencies": {
     "grunt": "~0.4.5",
