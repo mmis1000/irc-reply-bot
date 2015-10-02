@@ -8,7 +8,11 @@ path = require 'path'
 imgur = require 'imgur'
 tmp = require 'tmp'
 fs = require 'fs'
+cache = require 'memory-cache'
+
 phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
+
+Accept_Language = "zh-TW,zh;q=0.8,en-US;q=0.5,en;q=0.3"
 
 ###
  * emit : parseurl
@@ -94,7 +98,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       "#{commandPrefix} exclude add {regex} #don't detect url which matched this rule",
       "#{commandPrefix} exclude remove {regex} #remove exclude rule",
       "#{commandPrefix} exclude list #show current exclude rules",
-      "#{commandPrefix} drop #remove all exclude rules"
+      "#{commandPrefix} exclude drop #remove all exclude rules"
     ];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
@@ -128,7 +132,14 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     if not event.url || event.canceled
       return true
     
+    originalUrl = event.url
+    
+    if cache.get originalUrl
+      commandManager.send sender, textRouter, cache.get originalUrl
+      return true
+    
     event.cb = (title)->
+      cache.put originalUrl, title, 2 * 3600 * 1000
       commandManager.send sender, textRouter, title
       
     @_queryTitle event
@@ -151,7 +162,8 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       page.set 'settings.resourceTimeout', 5000
       page.set 'settings.webSecurityEnabled ', false
       #page.set 'settings.loadImages', false
-      page.set 'settings.userAgent', 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1478.0 Safari/537.36'
+      page.set 'settings.userAgent', 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36'
+      page.set 'customHeaders', {"Accept-Language" : Accept_Language}
       event.page = page
       
       @emit 'beforeopen', event
@@ -172,9 +184,11 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
           
         event.pageResult = status
         event.queryCallback = ()-> 
+          document.body.bgColor = 'white'
           JSON.stringify {
             title : document.title
             url : location.href
+            rwd : !!((document.querySelectorAll 'meta[name=viewport]').length)
           }
         @emit 'beforequery', event
         if event.canceled
@@ -191,7 +205,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
               return true
             
             if not event.title
-              event.title = "[ #{event.result.title} ] - #{Date.now() - event.timeOpen }ms - #{event.result.url}"
+              event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
               
             console.log 'phantomJS : Page title is ' + event.title if @debug
             page.set 'viewportSize', { width: 1366, height: 768 }, (result)->
@@ -199,7 +213,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
               
               tmp.dir (err, dirPath, cleanupCallback)->
                 imagePath = path.resolve dirPath, 'result.jpg'
-                console.log imagePath
+                #console.log imagePath
                 
                 page.render imagePath, {format: 'jpeg', quality: '90'}, ()->
                   console.log "file created at #{imagePath}"
@@ -210,7 +224,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
                   #starting upload image
                   imgur.uploadFile imagePath
                   .then (json)->
-                    console.log json.data.link
+                    console.log 'file uploaded to ' + json.data.link
                     event.cb event.title + " - " + json.data.link
                     try
                       fs.unlink imagePath, ()->
@@ -298,7 +312,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         console.log "fail to load plugin from #{plugin.path} due to", e
   
   _createRunner:()->
-    phantom.create '--ignore-ssl-errors=yes', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : (()->null), onStderr : ()->null},(ph, error)=>
+    phantom.create '--ignore-ssl-errors=true', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : (()->null), onStderr : ()->null},(ph, error)=>
       @fresh_phs.push ph
       ph.running = 0
       

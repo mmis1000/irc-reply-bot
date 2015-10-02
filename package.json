@@ -11,6 +11,7 @@
   "dependencies": {
     "imgur": "^0.1.6",
     "irc": "~0.3.12",
+    "memory-cache": "^0.1.4",
     "moment": "^2.10.3",
     "mongoose": "^4.0.6",
     "mubsub": "^1.0.4",
