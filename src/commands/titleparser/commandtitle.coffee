@@ -11,6 +11,8 @@ fs = require 'fs'
 cache = require 'memory-cache'
 url = require 'url'
 punycode = require 'punycode'
+Q = require 'q'
+
 
 phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
 
@@ -168,12 +170,21 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     return url.format temp
   
   _queryTitle: (event)->
+    getpage = ()=> 
+      # get runner
+      deferred = Q.defer()
+      @_getRunner().createPage (page) =>
+        deferred.resolve page
+      deferred.promise
     
     @emit 'beforecreate', event
     if event.canceled
       return true
-      
-    @_getRunner().createPage (page) =>
+    
+    p = getpage()
+    
+    # open page
+    p = p.then (page)=>
       page.set 'settings.resourceTimeout', 5000
       page.set 'settings.webSecurityEnabled ', false
       #page.set 'settings.loadImages', false
@@ -184,76 +195,122 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       @emit 'beforeopen', event
       if event.canceled
         page.close()
-        return true
+        e = new Error 'canceled'
+        e.type = 'CANCELED'
+        throw e
       
-      console.log "phantomJS : opening URL #{event.url}" if @debug
+      console.log "Title : opening URL #{event.url}" if @debug
       
       event.timeOpen = Date.now()
       
-      page.open event.url, (status) =>
-        console.log "phantomJS : opened site? ", status if @debug
+      deferred = Q.defer()
+      page.open event.url, (status)->
+        console.log 'test'
+        event.status = status
+        console.log "Title : : opened site? ", status if @debug
+        deferred.resolve page
+      deferred.promise
+    
+    # get title
+    p = p.then (page)=>
+      if event.status is 'fail'
+        page.close()
+        e = new Error 'fail to open page'
+        e.type = 'CANNOT_OPEN_PAGE'
+        throw e
         
-        if status is 'fail'
-          page.close()
-          return true
-          
-        event.pageResult = status
-        event.queryCallback = ()-> 
-          document.body.bgColor = 'white'
-          JSON.stringify {
-            title : document.title
-            url : location.href
-            rwd : !!((document.querySelectorAll 'meta[name=viewport]').length)
-          }
-        @emit 'beforequery', event
-        if event.canceled
-          page.close()
-          return true
+      event.pageResult = event.status
+      event.queryCallback = ()=> 
+        document.body.bgColor = 'white'
+        JSON.stringify {
+          title : document.title
+          url : location.href
+          rwd : !!((document.querySelectorAll 'meta[name=viewport]').length)
+        }
+      @emit 'beforequery', event
+      if event.canceled
+        page.close()
+        e = new Error 'canceled'
+        e.type = 'CANCELED'
+        throw e
+      
+      deferred = Q.defer()
+      page.evaluate event.queryCallback, (result) =>
+        event.result = JSON.parse result
+        deferred.resolve page
+      deferred.promise
+    
+    # set viewport
+    p = p.then (page)=>
+      @emit 'afterquery', event
+      if event.canceled
+        page.close()
+        e = new Error 'canceled'
+        e.type = 'CANCELED'
+        throw e
+      
+      if not event.title
+        event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
         
-        if event.pageResult is 'success'
-          page.evaluate event.queryCallback, (result) =>
-            event.result = JSON.parse result
-            
-            @emit 'afterquery', event
-            if event.canceled
-              page.close()
-              return true
-            
-            if not event.title
-              event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
-              
-            console.log 'phantomJS : Page title is ' + event.title if @debug
-            page.set 'viewportSize', { width: 1366, height: 768 }, (result)->
-              console.log "Viewport set to: " + result.width + "x" + result.height
-              
-              tmp.dir (err, dirPath, cleanupCallback)->
-                imagePath = path.resolve dirPath, 'result.jpg'
-                #console.log imagePath
-                
-                page.render imagePath, {format: 'jpeg', quality: '90'}, ()->
-                  console.log "file created at #{imagePath}"
-                  
-                  page.close()
-                  
-                  
-                  #starting upload image
-                  imgur.uploadFile imagePath
-                  .then (json)->
-                    console.log 'file uploaded to ' + json.data.link
-                    event.cb event.title + " - screenshot: " + json.data.link
-                    try
-                      fs.unlink imagePath, ()->
-                        cleanupCallback()
-                    catch e
-                      console.log e
-                  .catch (err)->
-                    console.error err.message
-                    event.cb event.title
-                    try
-                      fs.unlink imagePath, ()->
-                        cleanupCallback()
-                    catch e
-                      console.log e
+      console.log 'Title : Page title is ' + event.title if @debug
+
+      deferred = Q.defer()
+      page.set 'viewportSize', { width: 1366, height: 768 }, (result)->
+        console.log "Title : Viewport set to: " + result.width + "x" + result.height
+        deferred.resolve page
+      deferred.promise
+    
+    # create directory
+    p = p.then (page)=>
+      deferred = Q.defer()
+      tmp.dir (err, dirPath, cleanupCallback)->
+        console.log "Title : created dir #{dirPath}"
+        event.imagePath = path.resolve dirPath, 'result.jpg'
+        event.cleanupCallback = cleanupCallback
+        deferred.resolve page
+      deferred.promise
+    
+    # render image
+    p = p.then (page)=>
+      deferred = Q.defer()
+      page.render event.imagePath, {format: 'jpeg', quality: '90'}, ()->
+        console.log "Title : file created at #{event.imagePath}"
+        deferred.resolve page
+      deferred.promise
+    
+    p = p.then (page)=>
+      clearUp = (path, cleanupCallback)->
+        try
+          fs.unlink path, ()->
+            cleanupCallback()
+        catch e
+          console.log e
+        
+      page.close()
+      
+      console.log "Title : start to upload #{event.imagePath} to imgur"
+      
+      deferred = Q.defer()
+      imgur.uploadFile event.imagePath
+      .then (json)->
+        event.imgurPath = json.data.link
+        console.log "Title : uploaded #{event.imagePath}, URL is #{event.imgurPath}"
+        clearUp event.imagePath, event.cleanupCallback
+        deferred.resolve null
+      .catch (err)->
+        console.error err.message
+        clearUp event.imagePath, event.cleanupCallback
+        deferred.resolve null
+      deferred.promise
+    
+    p = p.then ()=>
+      if event.imgurPath 
+        event.title = event.title + " - screenshot: " + event.imgurPath
+      event.cb event.title
+    
+    p = p.catch (e)->
+      console.log e
+    
   #configs
   _save: ()->
     @storage.set 'titleParser', @setting
