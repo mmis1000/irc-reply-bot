@@ -9,6 +9,8 @@ imgur = require 'imgur'
 tmp = require 'tmp'
 fs = require 'fs'
 cache = require 'memory-cache'
+url = require 'url'
+punycode = require 'punycode'
 
 phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
 
@@ -150,7 +152,20 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     allURLs = text.match @matchRuleMap[@setting.mode]
     if not allURLs
       return null
-    return allURLs[0]
+    temp = url.parse allURLs[0]
+    
+    fixCJKInPath = (str)->
+      str.split ''
+      .map (char)->
+        return char if 127 > char.charCodeAt 0
+        return encodeURIComponent char
+      .join ''
+    
+    temp.pathname = fixCJKInPath temp.pathname if temp.pathname
+    temp.search = fixCJKInPath temp.search if temp.search
+    temp.hash = fixCJKInPath temp.hash if temp.hash
+    
+    return url.format temp
   
   _queryTitle: (event)->
     
@@ -225,7 +240,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
                   imgur.uploadFile imagePath
                   .then (json)->
                     console.log 'file uploaded to ' + json.data.link
-                    event.cb event.title + " - " + json.data.link
+                    event.cb event.title + " - screenshot: " + json.data.link
                     try
                       fs.unlink imagePath, ()->
                         cleanupCallback()
@@ -312,7 +327,13 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         console.log "fail to load plugin from #{plugin.path} due to", e
   
   _createRunner:()->
-    phantom.create '--ignore-ssl-errors=true', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : (()->null), onStderr : ()->null},(ph, error)=>
+    self = @
+    phantom.create '--ignore-ssl-errors=true', '--web-security=false', '--ssl-protocol=any', {path : phatomDir, onStdout : (()->null), onStderr : (()->null), onExit : (code, signal)->
+      if signal isnt null
+        self.ph = null
+        self._freshRunner()
+        console.log "[Error] phantom instance killed due to #{signal}"
+    },(ph, error)=>
       @fresh_phs.push ph
       ph.running = 0
       
