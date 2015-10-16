@@ -18,6 +18,10 @@ phatomDir = "#{path.dirname phantomjs.path}#{path.sep}"
 
 Accept_Language = "zh-TW,zh;q=0.8,en-US;q=0.5,en;q=0.3"
 
+MAX_SCREEN_SIZE_X = 2400
+MAX_SCREEN_SIZE_Y = 2400
+
+
 ###
  * emit : parseurl
  * emit : beforecreate
@@ -34,6 +38,8 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       'default' : /https?:\/\/[^\.\s\/]+(?:\.[^\.\s\/]+)+(?:\/[^\s]*)?/g
       'strict' : /https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&\/=]*/g
     }
+    @setting.exclude_image = @setting.excludeImage || [];
+    @setting.image_size = @setting.image_size || { width: 1366, height: 768 };
     @fresh_phs = []
     @ph = false
       
@@ -91,7 +97,59 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
             else
               commandManager.send sender, textRouter, 'Fail to drop rule.'
             return true
-              
+      when 'exclude-image'
+        switch args[2]
+          when 'add'
+            return false if args.length != 4
+            if @_addExclude args[3], 'exclude_image'
+              commandManager.send sender, textRouter, 'Added image excluded rule successfully'
+            else
+              commandManager.send sender, textRouter, 'Invalid rule!'
+            return true
+          when 'remove'
+            return false if args.length != 4
+            if @_removeExclude args[3], 'exclude_image'
+              commandManager.send sender, textRouter, 'Removed image excluded rule successfully'
+            else
+              commandManager.send sender, textRouter, 'No such rule!'
+            return true
+          when 'list'
+            return false if args.length != 3
+            commandManager.sendPv sender, textRouter, 'All excluded image URLs :'
+            commandManager.sendPv sender, textRouter, (@_getExclude 'exclude_image').join ', '
+            return true
+          when 'drop'
+            return false if args.length != 3
+            if @_dropExclude 'exclude_image'
+              commandManager.send sender, textRouter, 'Dropped image excluded rules!'
+            else
+              commandManager.send sender, textRouter, 'Fail to drop rule.'
+            return true
+      when 'size'
+        switch args[2]
+          when 'set'
+            return false if args.length != 5
+            return false if isNaN parseInt args[3], 10
+            return false if isNaN parseInt args[4], 10
+            x = parseInt args[3], 10
+            y = parseInt args[4], 10
+            
+            x = Math.min x, MAX_SCREEN_SIZE_X
+            y = Math.min y, MAX_SCREEN_SIZE_Y
+            
+            @setting.image_size = {
+              width : x,
+              height : y
+            }
+            @_save()
+            commandManager.send sender, textRouter, "sett size size to #{@setting.image_size.width} / #{@setting.image_size.height}"
+            return true
+            
+          when 'get'
+            return false if args.length != 3
+            commandManager.send sender, textRouter, "cuurent size is #{@setting.image_size.width} / #{@setting.image_size.height}"
+            
+            return true
     return false
   
   help: (commandPrefix)->
@@ -141,6 +199,12 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     if cache.get originalUrl
       commandManager.send sender, textRouter, cache.get originalUrl
       return true
+    
+    
+    if event.url and @_matchExclude event.url, 'exclude_image'
+      event.noImage = true
+    
+    event.viewport = @setting.image_size
     
     event.cb = (title)->
       cache.put originalUrl, title, 2 * 3600 * 1000
@@ -209,17 +273,19 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         event.status = status
         console.log "Title : : opened site? ", status if @debug
         deferred.resolve page
+        
+        event.pageResult = event.status
+        if event.status is 'fail'
+          page.close()
+          e = new Error 'fail to open page'
+          e.type = 'CANNOT_OPEN_PAGE'
+          throw e
+          
+        
       deferred.promise
     
     # get title
     p = p.then (page)=>
-      if event.status is 'fail'
-        page.close()
-        e = new Error 'fail to open page'
-        e.type = 'CANNOT_OPEN_PAGE'
-        throw e
-        
-      event.pageResult = event.status
       event.queryCallback = ()=> 
         document.body.bgColor = 'white'
         JSON.stringify {
@@ -238,71 +304,77 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       page.evaluate event.queryCallback, (result) =>
         event.result = JSON.parse result
         deferred.resolve page
+        
+        @emit 'afterquery', event
+        if event.canceled
+          page.close()
+          e = new Error 'canceled'
+          e.type = 'CANCELED'
+          throw e
+        
+        if not event.title
+          event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
+          
+        console.log 'Title : Page title is ' + event.title if @debug
+        
       deferred.promise
     
-    # set viewport
-    p = p.then (page)=>
-      @emit 'afterquery', event
-      if event.canceled
+    if not event.noImage
+    
+      # set viewport
+      p = p.then (page)=>
+        viewport = event.viewport || { width: 1366, height: 768 }
+        deferred = Q.defer()
+        page.set 'viewportSize', viewport, (result)->
+          console.log "Title : Viewport set to: " + result.width + "x" + result.height
+          deferred.resolve page
+        deferred.promise
+      
+      # create directory
+      p = p.then (page)=>
+        deferred = Q.defer()
+        tmp.dir (err, dirPath, cleanupCallback)->
+          console.log "Title : created dir #{dirPath}"
+          event.imagePath = path.resolve dirPath, 'result.jpg'
+          event.cleanupCallback = cleanupCallback
+          deferred.resolve page
+        deferred.promise
+      
+      # render image
+      p = p.then (page)=>
+        deferred = Q.defer()
+        page.render event.imagePath, {format: 'jpeg', quality: '90'}, ()->
+          console.log "Title : file created at #{event.imagePath}"
+          deferred.resolve page
+        deferred.promise
+      
+      #upload image
+      p = p.then (page)=>
+        clearUp = (path, cleanupCallback)->
+          try
+            fs.unlink path, ()->
+              cleanupCallback()
+          catch e
+            console.log e
+          
         page.close()
-        e = new Error 'canceled'
-        e.type = 'CANCELED'
-        throw e
-      
-      if not event.title
-        event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
         
-      console.log 'Title : Page title is ' + event.title if @debug
-
-      deferred = Q.defer()
-      page.set 'viewportSize', { width: 1366, height: 768 }, (result)->
-        console.log "Title : Viewport set to: " + result.width + "x" + result.height
-        deferred.resolve page
-      deferred.promise
-    
-    # create directory
-    p = p.then (page)=>
-      deferred = Q.defer()
-      tmp.dir (err, dirPath, cleanupCallback)->
-        console.log "Title : created dir #{dirPath}"
-        event.imagePath = path.resolve dirPath, 'result.jpg'
-        event.cleanupCallback = cleanupCallback
-        deferred.resolve page
-      deferred.promise
-    
-    # render image
-    p = p.then (page)=>
-      deferred = Q.defer()
-      page.render event.imagePath, {format: 'jpeg', quality: '90'}, ()->
-        console.log "Title : file created at #{event.imagePath}"
-        deferred.resolve page
-      deferred.promise
-    
-    p = p.then (page)=>
-      clearUp = (path, cleanupCallback)->
-        try
-          fs.unlink path, ()->
-            cleanupCallback()
-        catch e
-          console.log e
+        console.log "Title : start to upload #{event.imagePath} to imgur"
         
-      page.close()
-      
-      console.log "Title : start to upload #{event.imagePath} to imgur"
-      
-      deferred = Q.defer()
-      imgur.uploadFile event.imagePath
-      .then (json)->
-        event.imgurPath = json.data.link
-        console.log "Title : uploaded #{event.imagePath}, URL is #{event.imgurPath}"
-        clearUp event.imagePath, event.cleanupCallback
-        deferred.resolve null
-      .catch (err)->
-        console.error err.message
-        clearUp event.imagePath, event.cleanupCallback
-        deferred.resolve null
-      deferred.promise
+        deferred = Q.defer()
+        imgur.uploadFile event.imagePath
+        .then (json)->
+          event.imgurPath = json.data.link
+          console.log "Title : uploaded #{event.imagePath}, URL is #{event.imgurPath}"
+          clearUp event.imagePath, event.cleanupCallback
+          deferred.resolve null
+        .catch (err)->
+          console.error err.message
+          clearUp event.imagePath, event.cleanupCallback
+          deferred.resolve null
+        deferred.promise
     
+    #append url if screenshot exist
     p = p.then ()=>
       if event.imgurPath 
         event.title = event.title + " - screenshot: " + event.imgurPath
@@ -339,37 +411,37 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         modes.push key
     return modes
 
-  _addExclude: (regex)->
+  _matchExclude: (url, name = 'exclude')->
+    for item in @setting[name]
+      if url.match item
+        return true
+    return false
+    
+  _addExclude: (regex, name = 'exclude')->
     regex = regex.toString()
-    if regex in @setting.exclude
+    if regex in @setting[name]
       return true
     try
       new RegExp regex
-      @setting.exclude.push regex
+      @setting[name].push regex
       @_save()
       return true
     catch e
       return false
       
-  _removeExclude: (regex)->
-    index = @setting.exclude.indexOf regex
+  _removeExclude: (regex, name = 'exclude')->
+    index = @setting[name].indexOf regex
     if index < 0
       return false
-    @setting.exclude.splice index, 1
+    @setting[name].splice index, 1
     @_save()
     return true
   
-  _matchExclude: (url)->
-    for item in @setting.exclude
-      if url.match item
-        return true
-    return false
-  
-  _getExclude:()->
-    return @setting.exclude[0..]
+  _getExclude:(name = 'exclude')->
+    return @setting[name][0..]
 
-  _dropExclude:()->
-    @setting.exclude = []
+  _dropExclude:(name = 'exclude')->
+    @setting[name] = []
     @_save()
     return true
     
