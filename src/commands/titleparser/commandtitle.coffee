@@ -284,15 +284,19 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         console.log "Title : : opened site? ", status if @debug
         deferred.resolve page
         
-        event.pageResult = event.status
-        if event.status is 'fail'
-          page.close()
-          e = new Error 'fail to open page'
-          e.type = 'CANNOT_OPEN_PAGE'
-          throw e
           
         
       deferred.promise
+      
+    # after open page
+    p = p.then (page)=>
+      event.pageResult = event.status
+      if event.status is 'fail'
+        page.close()
+        e = new Error 'fail to open page'
+        e.type = 'CANNOT_OPEN_PAGE'
+        throw e
+      return page
     
     # get title
     p = p.then (page)=>
@@ -315,20 +319,24 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         event.result = JSON.parse result
         deferred.resolve page
         
-        @emit 'afterquery', event
-        if event.canceled
-          page.close()
-          e = new Error 'canceled'
-          e.type = 'CANCELED'
-          throw e
-        
-        if not event.title
-          event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
-          
-        console.log 'Title : Page title is ' + event.title if @debug
         
       deferred.promise
     
+    # after get title
+    p = p.then (page)=>
+      @emit 'afterquery', event
+      if event.canceled
+        page.close()
+        e = new Error 'canceled'
+        e.type = 'CANCELED'
+        throw e
+      
+      if not event.title
+        event.title = "[ #{event.result.title} ] - #{if event.result.rwd then 'Mobile supported - ' else ''}#{Date.now() - event.timeOpen }ms - #{event.result.url}"
+        
+      console.log 'Title : Page title is ' + event.title if @debug
+      return page
+      
     if not event.noImage
     
       # set viewport
