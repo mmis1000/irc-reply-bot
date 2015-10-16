@@ -221,6 +221,10 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     
   _extractURL: (text)->
     text = text.toString()
+    
+    #dirty hack to remove irc color code
+    text = text.replace /((?:\u0003\d\d?,\d\d?|\u0003\d\d?|\u0002|\u001d|\u000f|\u0016|\u001f))/g, ''
+    
     allURLs = text.match @matchRuleMap[@setting.mode]
     if not allURLs
       return null
