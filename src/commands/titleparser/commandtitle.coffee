@@ -160,7 +160,13 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       "#{commandPrefix} exclude add {regex} #don't detect url which matched this rule",
       "#{commandPrefix} exclude remove {regex} #remove exclude rule",
       "#{commandPrefix} exclude list #show current exclude rules",
-      "#{commandPrefix} exclude drop #remove all exclude rules"
+      "#{commandPrefix} exclude drop #remove all exclude rules",
+      "#{commandPrefix} exclude-image add {regex} #don't create screenshot which matched this rule",
+      "#{commandPrefix} exclude-image remove {regex} #remove screenshot exclude rule",
+      "#{commandPrefix} exclude-image list #show current screenshot exclude rules",
+      "#{commandPrefix} exclude-image drop #remove all screenshot exclude rules",
+      "#{commandPrefix} size set {width} {heaigh} #set screenshot size",
+      "#{commandPrefix} size get #get screenshot size",
     ];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
