@@ -345,21 +345,35 @@ class CommandLogs extends Icommand
     return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    return false  if type isnt "text"
+    return false  if not (type in ["text", "output"])
     
-    args = commandManager.parseArgs content
+    if type is "text"
+      
+      args = commandManager.parseArgs content
+      
+      return false if args[0] is "log"
+      
+      onChannel = 0 is sender.target.search /#/
+      
+      message = new @Message {
+        from : sender.sender
+        to : sender.target
+        message : content
+        isOnChannel : onChannel
+        time : new Date
+      }
     
-    return false if args[0] is "log"
-    
-    onChannel = 0 is sender.target.search /#/
-    
-    message = new @Message {
-      from : sender.sender
-      to : sender.target
-      message : content
-      isOnChannel : onChannel
-      time : new Date
-    }
+    if type is "output"
+      
+      onChannel = 0 is content.target.search /#/
+      
+      message = new @Message {
+        from : textRouter.getSelfName()
+        to : content.target
+        message : content.message
+        isOnChannel : onChannel
+        time : new Date
+      }
     
     message.save (err, remoteMessage)=>
       if err?

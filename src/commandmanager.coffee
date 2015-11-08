@@ -222,17 +222,40 @@ class CommandManager extends EventEmitter
 
   _sendToPlace: (textRouter, from, to, channel, message)->
     if 0 == to.search /^#/
-      textRouter.output(message, to)
+      target = to
     else
-      textRouter.output(message, from)
+      target = from
+    textRouter.output(message, target)
   
   send: (sender, router, text)->
+    if 0 == sender.target.search /^#/
+      target = sender.target
+    else
+      target = sender.sender
+    
+    @handleRaw sender, 'output', {
+      message: text,
+      target: target
+    }, router
+    
     @_sendToPlace router, sender.sender, sender.target, sender.channel, text
     
   sendPv: (sender, router, text)->
+    
+    @handleRaw sender, 'output', {
+      message: text,
+      target: sender.sender
+    }, router
+    
     router.output text, sender.sender
 
   sendChannel: (sender, router, text)->
+    
+    @handleRaw sender, 'output', {
+      message: message,
+      target: sender.channel
+    }, router
+    
     router.output text, sender.channel
 
   parseArgs: (text)->
