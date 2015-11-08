@@ -392,6 +392,13 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
           deferred.resolve null
         deferred.promise
     
+    else
+      
+      #just close the page
+      p = p.then (page)=>
+        page.close()
+      
+      
     #append url if screenshot exist
     p = p.then ()=>
       if event.imgurPath 
@@ -481,6 +488,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
         self._freshRunner()
         console.log "[Error] phantom instance killed due to #{signal}"
     },(ph, error)=>
+      #console.log 'create runner', ph
       @fresh_phs.push ph
       ph.running = 0
       
@@ -509,6 +517,7 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     @waiting = true
   
   _freshRunner:()->
+    #console.log 'fresh runner'
     if !@ph
       @ph = @fresh_phs.pop()
       
