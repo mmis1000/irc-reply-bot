@@ -128,7 +128,7 @@ Bot.prototype._setExitHandle = function () {
     
     if (options.cleanup) console.log('cleaning up...');
     if (err) {
-      console.log(err);
+      console.error(err, err.stack);
     }
     if (options.exit) {
       if (self._exiting) {return;}
