@@ -67,4 +67,5 @@ class TextRouter extends EventEmitter
   
   getChannels : (channels)->
     @_channels
+    
 module.exports = TextRouter

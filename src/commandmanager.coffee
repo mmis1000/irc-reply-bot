@@ -26,7 +26,7 @@ class CommandManager extends EventEmitter
     @modules = []
     
     @aliasMap = {}
-    
+    @routers = []
     #bind default commands
     
     helpCommand =
@@ -90,10 +90,11 @@ class CommandManager extends EventEmitter
     @register 'sudo', sudoCommand, []
     
     
-    @load new Bind
+    # @load new Bind
     @load new Ban
     #bind input stream
     @defaultRouter = textRouter
+    @routers.push textRouter
     
     textRouter.on "input", (message, sender)=>
       
@@ -113,7 +114,9 @@ class CommandManager extends EventEmitter
     if opList.length == 0
       textRouter.on 'connect', ()->
         textRouter.output "[Warning] no op setted, assume everyone has operator permission"
-
+    
+    @currentRouter = textRouter
+    
   handleRaw: (sender, type, contents, textRouter)->
     event = {cancelled : false}
     for command in @commands
@@ -125,10 +128,12 @@ class CommandManager extends EventEmitter
     return event
     
   handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
+    @currentRouter = textRouter
+    
     result = {}
     commandManager = @
     
-    result.isCommand = isCommand || (text.search escapeRegex @identifier) == 0
+    result.isCommand = isCommand || (text.search escapeRegex @identifier) == 0 || !!((text.search escapeRegex textRouter.getIdentifier()) == 0 if textRouter.getIdentifier)
     result.sender = sender
     result.text = text
     result.fromBinding = false
@@ -144,15 +149,15 @@ class CommandManager extends EventEmitter
       return false
     
     identifierRegex = escapeRegex @identifier
-    
+    ###
     if 0 == text.search identifierRegex
       argsText = text.replace @identifier, ""
     else
       argsText = text
     
     argsText = argsText.replace /^\s+/g, ""
-    
-    args = argsText.split(" ")
+    ###
+    args = @parseArgs text
     
     command = args[0]
     
@@ -259,6 +264,9 @@ class CommandManager extends EventEmitter
     router.output text, sender.channel
 
   parseArgs: (text)->
+    if @currentRouter.parseArgs
+      return @currentRouter.parseArgs text
+    
     argsText =  if 0 == (text.search escapeRegex @identifier) then (text.replace (escapeRegex @identifier), "") else text
     argsText = argsText.replace /^\s*/g, ""
     args = argsText.split(" ")
@@ -283,8 +291,6 @@ class CommandManager extends EventEmitter
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[args[1]].help "#{@identifier} #{args[1]}"
     return true
   
-  
-
   _commandOp: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2
       return false
@@ -344,4 +350,20 @@ class CommandManager extends EventEmitter
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "access denied"
     return true
 
+  addRouter: (textRouter)->
+    @routers.push textRouter
+    textRouter.on "input", (message, sender, router = textRouter)=>
+      
+      @lastChannel = sender.channel
+      @lastSender = sender.channel
+      
+      @handleRaw sender, "text", message, router
+      @handleText sender, message, router
+    
+    textRouter.on "rpl_join", (channel, sender, router = textRouter)=>
+      @handleRaw sender, "join", channel, router
+    
+    textRouter.on "rpl_raw", (reply, router = textRouter)=>
+      @handleRaw null, "raw", reply, router
+    
 module.exports = CommandManager

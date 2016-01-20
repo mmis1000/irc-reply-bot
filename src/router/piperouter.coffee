@@ -56,4 +56,6 @@ class PipeRouter extends IRouter
           output.push result.message
     output.join '\r\n'
   
+  getRouterIdentifier : ()->
+    return null
 module.exports = PipeRouter

@@ -72,21 +72,26 @@ class IrcRouter extends TextRouter
       if e.command == 'rpl_welcome'
         @nick = e.args[0]
         @setSelfName e.args[0]
+      ###
       if e.command == 'JOIN' and @nick == e.nick
         #textRouter.output('bot connected');
         @emit 'connect'
         console.log "joined channel"
-      if e.command == 'PRIVMSG' and /\u0001action\s(.*)\u0001/i.test(e.args[1])
-        @client.emit 'me', e.nick, e.args[0], /\u0001action\s(.*)\u0001/i.exec(e.args[1])[1]
+      ###
       #console.log(e);
       @rplRaw e
       return
+    
+    @client.on 'join', (channel, nick, message)=>
+      if @nick == nick
+        @emit 'connect'
+        console.log "joined channel #{channel}"
     
     @client.addListener 'message', (from, to, message) =>
       console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + from + ' => ' + to + ': ' + message
       @input message, from, to, @channels
       return
-    @client.addListener 'me', (from, to, message) =>
+    @client.addListener 'action', (from, to, message) =>
       console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' (E) ' + from + ' => ' + to + ': ' + message
       @inputMe message, from, to, @channels
       # also route the message as text
@@ -123,4 +128,7 @@ class IrcRouter extends TextRouter
       return
   disconnect: (msg, cb)->
     @client.disconnect msg, cb
+  
+  getRouterIdentifier : ()->
+    return @server
 module.exports = IrcRouter
