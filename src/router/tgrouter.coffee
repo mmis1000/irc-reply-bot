@@ -25,6 +25,7 @@ class TelegramRouter extends TextRouter
       if @userPostFix
         userName += "@" + @channelPostFix
       text = message.text
+      return if not text
       @input text, userName, channelId, []
     
     @on 'output', (m, target)=>
