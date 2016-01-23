@@ -105,11 +105,11 @@ TelegramAPI.prototype.answerInlineQuery = function answerInlineQuery(id, results
         results: results
     } , cb);
 }
-TelegramAPI.prototype.sendMessage = function sendMessage(chat_id, text, cb) {
-    return this._invoke('sendMessage', {
-        chat_id: chat_id,
-        text: text
-    } , cb);
+TelegramAPI.prototype.sendMessage = function sendMessage(chat_id, text, cb, datas) {
+    datas = typeof datas === "object" ? datas : {};
+    datas.chat_id = chat_id;
+    datas.text = text;
+    return this._invoke('sendMessage', datas , cb);
 }
 module.exports = TelegramAPI
 

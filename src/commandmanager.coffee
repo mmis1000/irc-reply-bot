@@ -90,7 +90,7 @@ class CommandManager extends EventEmitter
     @register 'sudo', sudoCommand, []
     
     
-    # @load new Bind
+    @load new Bind
     @load new Ban
     #bind input stream
     @defaultRouter = textRouter
@@ -255,12 +255,16 @@ class CommandManager extends EventEmitter
     router.output text, sender.sender
 
   sendChannel: (sender, router, text)->
-    
-    @handleRaw sender, 'output', {
-      message: message,
-      target: sender.channel
-    }, router
-    
+    if not Array.isArray sender.channel
+      targets = [sender.channel]
+    else
+      targets = sender.channel
+    for target in targets
+      @handleRaw sender, 'output', {
+        message: text,
+        target: target
+      }, router
+      
     router.output text, sender.channel
 
   parseArgs: (text)->
