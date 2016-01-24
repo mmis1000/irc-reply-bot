@@ -8,6 +8,9 @@ var config = {
   saveFolder : "save",
   saveName : "cm.json",
   init : function (commandManager, helper) {
+    // var TelegramRouter = require('./lib/router/tgrouter')
+    // commandManager.addRouter(new TelegramRouter('000000000:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'))
+    
     var path = require("path");
     
     var chatLogPath = 'chatlog.json';
