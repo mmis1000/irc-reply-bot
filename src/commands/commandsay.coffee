@@ -10,13 +10,13 @@ class CommandSay extends Icommand
     broadcast = true
     target = null
         
-    if sender.target.match /^#+[a-z]+/i
-      broadcast = false
-    else if args[1].match /^#+[a-z]+/i
+    if args[1].match /^#.+/i
       broadcast = false
       target = args[1]
       sender.target = args[1]
       args = [args[0], args[2..]...]
+    else if sender.target.match /^#.+/i
+      broadcast = false
     else if fromBinding == true
       broadcast = false
     
@@ -35,7 +35,7 @@ class CommandSay extends Icommand
       message = args[1..].join " "
       message = message.replace /\\n/g, "\n"
     
-    if sender.target.match /^#+[a-z]+/i
+    if sender.target.match /^#.+/i
       commandManager.send sender, textRouter, message
     else
       if not broadcast
