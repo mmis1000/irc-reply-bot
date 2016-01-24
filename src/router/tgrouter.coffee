@@ -111,7 +111,7 @@ class TelegramRouter extends TextRouter
       @messageBuffer[to + '_' + message_id] = @messageBuffer[to + '_' + message_id] || []
       @messageBuffer[to + '_' + message_id].push message
       @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
-    
+      return
     if Array.isArray message
       message = message.join "\n"
     
@@ -126,7 +126,8 @@ class TelegramRouter extends TextRouter
     for key, value of @messageBuffer
       channel = (key.split '_')[0]
       id = (key.split '_')[1]
-      channel = parseInt channel, 10
+      channelTemp = parseInt channel, 10
+      channel = channelTemp || channel
       id = parseInt id, 10
       if isNaN id
         id = null
