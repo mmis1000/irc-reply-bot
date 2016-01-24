@@ -23,7 +23,7 @@ class TelegramRouter extends TextRouter
       
       @api.on 'message', (message)=>
         
-        console.log(message)
+        # console.log(message)
         
         channelId = "#" + message.chat.id.toString()
         
@@ -54,10 +54,11 @@ class TelegramRouter extends TextRouter
           channelName = "#" + message_.chat.id.toString()
           channelName += "@" + @channelPostFix if @channelPostFix
           @output message, to, message_id, channelName
-          
+        console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + text.replace /\r?\n/g, '\r\n   | '
         @input text, userName, channelId, [], clonedRouter
       
       @on 'output', (m, target, replyId)=>
+        console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + @getSelfName() + ' => ' + target + ': ' + m.replace /\r?\n/g, '\r\n   | '
         target = target.replace /@.*$/, ''
         
         if target.match /^#/
