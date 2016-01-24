@@ -108,13 +108,14 @@ class TelegramRouter extends TextRouter
     if originalChannel and to isnt originalChannel
       message_id_temp = undefined
     
+    if Array.isArray message
+      message = message.join "\r\n"
+      
     if (not nobuffer) and @bufferTimeout > 0
       @messageBuffer[to + '_' + message_id] = @messageBuffer[to + '_' + message_id] || []
       @messageBuffer[to + '_' + message_id].push message
       @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
       return
-    if Array.isArray message
-      message = message.join "\n"
     
     if ('string' == typeof to) || not to?
       @emit "output", message, to, message_id_temp
