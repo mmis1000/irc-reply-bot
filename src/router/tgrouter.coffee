@@ -112,9 +112,15 @@ class TelegramRouter extends TextRouter
       message = message.join "\r\n"
       
     if (not nobuffer) and @bufferTimeout > 0
-      @messageBuffer[to + '_' + message_id_temp] = @messageBuffer[to + '_' + message_id_temp] || []
-      @messageBuffer[to + '_' + message_id_temp].push message
-      @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
+      if Array.isArray to
+        to.forEach (to)=>
+          @messageBuffer[to + '_' + message_id_temp] = @messageBuffer[to + '_' + message_id_temp] || []
+          @messageBuffer[to + '_' + message_id_temp].push message
+          @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
+      else
+        @messageBuffer[to + '_' + message_id_temp] = @messageBuffer[to + '_' + message_id_temp] || []
+        @messageBuffer[to + '_' + message_id_temp].push message
+        @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
       return
     
     if ('string' == typeof to) || not to?
