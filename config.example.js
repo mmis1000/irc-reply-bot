@@ -39,6 +39,12 @@ var config = {
     
     var CommandDemorse = require('./lib/commands/commanddemorse.js');
     
+    var CommandMe = require('./lib/commands/commandme.js');
+    var CommandMail = require('./lib/commands/commandmail.js');
+    var CommandMcStatus = require('./lib/commands/commandmcstatus.js');
+    var CommandTranslate = require('./lib/commands/commandtranslate.js');
+    var CommandHello = require('./lib/commands/commandhello.js');
+    
     commandManager.register ("say", new CommandSay, []);
     commandManager.register ("rainbow", new CommandRainbow, []);
     commandManager.register ("rainbow2", new CommandRainbow2, []);
@@ -58,6 +64,12 @@ var config = {
     commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
     
     commandManager.register ("demorse", new CommandDemorse(), []);
+    
+    commandManager.register ("me", new CommandMe(), []);
+    commandManager.register ("mail", new CommandMail(helper.createStorage(mailboxPath)), []);
+    commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
+    commandManager.register ("translate", new CommandTranslate(), ['tr']);
+    commandManager.register ("hello", new CommandHello(), ['start']);
     
     var CommandTranslate = require('./lib/commands/commandtranslate.js');
     commandManager.register ("translate", new CommandTranslate(), ['tr']);
