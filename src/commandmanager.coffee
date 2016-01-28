@@ -128,6 +128,10 @@ class CommandManager extends EventEmitter
     return event
     
   handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
+    currentIdentifier = @identifier
+    if textRouter.getIdentifier
+      currentIdentifier = textRouter.getIdentifier()
+    
     @currentRouter = textRouter
     
     result = {}
@@ -168,7 +172,7 @@ class CommandManager extends EventEmitter
       if @aliasMap[command]
         command = @aliasMap[command]
       else
-        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command : #{command} \ntype '#{@identifier} help' for help!"
+        # @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command : #{command} \ntype '#{@identifier} help' for help!"
         return false
 
     if ( @handleRaw sender, "before_permission", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
@@ -177,7 +181,7 @@ class CommandManager extends EventEmitter
       if ( @handleRaw sender, "before_command", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
         return false
       if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
-        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{@identifier} #{command}"
+        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{currentIdentifier} #{command}"
     else
       @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
 
@@ -277,6 +281,11 @@ class CommandManager extends EventEmitter
     return args
 
   _commandHelp: (sender ,text, args, storage, textRouter, commandManager)->
+    
+    currentIdentifier = @identifier
+    if textRouter.getIdentifier
+      currentIdentifier = textRouter.getIdentifier()
+    
     if args.length > 2
       return false
     if args.length == 1
@@ -287,12 +296,12 @@ class CommandManager extends EventEmitter
           message += "[#{@commandAliasMap[command].join ', '}]"
         if index != @commands.length - 1
           message += ", "
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all commands : #{message}\nuse { #{@identifier}help [command] } to see usage of command"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "all commands : #{message}\nuse { #{currentIdentifier}help [command] } to see usage of command"
     else
       if (@commands.indexOf args[1]) < 0
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command!"
       else
-        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[args[1]].help "#{@identifier} #{args[1]}"
+        commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[args[1]].help "#{currentIdentifier}#{args[1]}"
     return true
   
   _commandOp: (sender ,text, args, storage, textRouter, commandManager)->
