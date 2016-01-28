@@ -91,7 +91,7 @@ class TelegramRouter extends TextRouter
   
   parseArgs: (cmd)->
     temp = cmd.replace /^\//, ''
-    .split /\s/g
+    .split /\u0020/g
     temp[0] = temp[0].replace /@.*/, ''
     temp
     
