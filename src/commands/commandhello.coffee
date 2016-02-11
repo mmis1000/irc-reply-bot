@@ -1,6 +1,6 @@
 Icommand = require '../icommand.js'
 
-class CommandReply extends Icommand
+class CommandHello extends Icommand
   constructor: ()->
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
@@ -31,4 +31,4 @@ class CommandReply extends Icommand
   hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
     return true
 
-module.exports = CommandReply
+module.exports = CommandHello
