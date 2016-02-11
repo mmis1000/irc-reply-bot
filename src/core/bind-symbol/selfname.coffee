@@ -3,6 +3,6 @@ class SelfName
     @symbols = ['selfname']
   
   handle : (sender, content, args, manager, router)->
-    sender.toString()
+    manager.toDisplayName sender
 
 module.exports = new SelfName
