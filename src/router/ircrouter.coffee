@@ -130,5 +130,6 @@ class IrcRouter extends TextRouter
     @client.disconnect msg, cb
   
   getRouterIdentifier : ()->
-    return @server
+    return @_routerIndetifier or ''
+
 module.exports = IrcRouter

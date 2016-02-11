@@ -31,4 +31,7 @@ class IRouter extends Defer
   getChannels : (channels)->
 
   getRouterIdentifier : ()->
+    
+  toDisplayName: (str)-> str.replace /@.*/, ''
+    
 module.exports = IRouter

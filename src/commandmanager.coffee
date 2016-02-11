@@ -378,5 +378,27 @@ class CommandManager extends EventEmitter
     
     textRouter.on "rpl_raw", (reply, router = textRouter)=>
       @handleRaw null, "raw", reply, router
+  
+  toDisplayName: (sender)->
+    if sender and 'object' is typeof sender
+      sender = sender.sender
+    
+    if 'string' isnt typeof sender
+      return '' + sender
+    
+    router = /@(.*)$/.exec sender
+    
+    if router
+      router = router[1]
+    else
+      router = ''
+    
+    router = @routers.find (messageRouter)->
+      return router is messageRouter.getRouterIdentifier()
+    
+    if not router
+      return '' + sender
+    
+    router.toDisplayName sender
     
 module.exports = CommandManager

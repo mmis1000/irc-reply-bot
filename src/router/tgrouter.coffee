@@ -87,7 +87,7 @@ class TelegramRouter extends TextRouter
     @client.disconnect msg, cb
   
   getRouterIdentifier : ()->
-    return "telegram.com"
+    return @_routerIndetifier or "tg"
   
   parseArgs: (cmd)->
     temp = cmd.replace /^\//, ''
@@ -144,4 +144,6 @@ class TelegramRouter extends TextRouter
       @output value, channel, id, null, true
     @messageBuffer = {}
   
+  toDisplayName: (str)-> "@#{str.replace /@.*/, ''}"
+
 module.exports = TelegramRouter
