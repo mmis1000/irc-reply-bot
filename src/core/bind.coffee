@@ -15,6 +15,7 @@ class Bind extends Imodule
       @_init()
     if type == 'before_iscommand'
       return if content.isCommand # don't try to parse already parsed command
+      return if @_isIgnored sender
       result = @_getBinding content.text, commandManager, sender, textRouter
       if result != false 
         content.text = result
@@ -62,6 +63,11 @@ class Bind extends Imodule
           console.log e
       
     return results
+  
+  _isIgnored: (sender)->
+    if 0 <= (@storage.get 'bindingIgnoredChannel', []).indexOf sender.target
+      return true
+    false
   
   _init: ()->
     @keywords = @storage.get "keywords" ,[]
@@ -137,6 +143,48 @@ class Bind extends Imodule
       handleRaw: (sender, type, content)->return false
     
     @registerCommand 'show', bindShowCommand, []
+    
+    ignoreChannelCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandIgnoreChannel sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return ["ignore keyword in a channel! usage: ",
+          "#{commandPrefix} <channel>"
+        ]
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
+        return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
+    
+    @registerCommand 'ignoreChannel', ignoreChannelCommand, []
+    
+    unignoreChannelCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandRemoveIgnoredChannel sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return ["unignore keyword in a channel! usage: ",
+          "#{commandPrefix} <channel>"
+        ]
+      hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)=>
+        if fromBinding
+          return false
+        return commandManager.isOp sender.sender
+      handleRaw: (sender, type, content)->return false
+    
+    @registerCommand 'unignoreChannel', unignoreChannelCommand, []
+    
+    listignoreChannelCommand =
+      handle: (sender ,text, args, storage, textRouter, commandManager)=>
+        @_commandListIgnoredChannel sender ,text, args, storage, textRouter, commandManager
+      help: (commandPrefix)->
+        return ["list ignored channel! usage: ",
+          "#{commandPrefix}"
+        ]
+      hasPermission: => return true
+      handleRaw: (sender, type, content)->return false
+    
+    @registerCommand 'listIgnoreChannel', listignoreChannelCommand, []
     
   _commandBind: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 3
@@ -253,4 +301,46 @@ class Bind extends Imodule
     else
       commandManager.send sender, textRouter, "#Keyword not found."
     return true
+    
+  _commandIgnoreChannel: (sender , text, args, storage, textRouter, commandManager)->
+    return false if args.length isnt 2
+    currentList = @storage.get 'bindingIgnoredChannel', []
+    
+    if '#' isnt args[1].slice 0, 1
+      commandManager.send sender, textRouter, "#{args[1]} isnt a valid channel"
+      return true
+    
+    if 0 <= currentList.indexOf args[1]
+      commandManager.send sender, textRouter, "This channel was already ignored"
+      return true
+    currentList.push args[1]
+    @storage.set 'bindingIgnoredChannel', currentList
+    commandManager.send sender, textRouter, "ignored channel #{args[1]}"
+    true
+  
+  _commandRemoveIgnoredChannel: (sender , text, args, storage, textRouter, commandManager)->
+    return false if args.length isnt 2
+    currentList = @storage.get 'bindingIgnoredChannel', []
+    
+    if '#' isnt args[1].slice 0, 1
+      commandManager.send sender, textRouter, "#{args[1]} isnt a valid channel"
+      return true
+      
+    index = currentList.indexOf args[1]
+    
+    if 0 > index
+      commandManager.send sender, textRouter, "This channel was not ignored"
+      return true
+    
+    currentList.splice index, 1
+    @storage.set 'bindingIgnoredChannel', currentList
+    commandManager.send sender, textRouter, "unignored channel #{args[1]}"
+    true
+    
+  _commandListIgnoredChannel: (sender , text, args, storage, textRouter, commandManager)->
+    return false if args.length isnt 1
+    currentList = @storage.get 'bindingIgnoredChannel', []
+    commandManager.send sender, textRouter, "all ignored channel: #{ currentList.join ', ' }"
+    true
+    
 module.exports = Bind
