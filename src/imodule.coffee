@@ -5,7 +5,7 @@ class Imodule extends Icommand
     @commandMap = {}
     
     @registerCommand 'help', {
-      help : (()-> return 'show message of sub commands'),
+      help : (@help.bind this),
       handle : (@subCommandHelp.bind this),
       hasPermission : (()-> true),
       handleRaw : (()-> false)
