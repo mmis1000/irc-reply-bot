@@ -57,8 +57,8 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
     switch args[1]
       when 'toggle'
         return false if args.length != 3
-        if @_toggle args[2]
-          commandManager.send sender, textRouter, "title parser has been toggled to #{args[2]}"
+        if @_toggle args[2], sender
+          commandManager.send sender, textRouter, "title parser has been toggled to #{args[2]} for #{sender.target}"
           return true
         else
           return false
@@ -178,7 +178,10 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
       return true
     if 0 != sender.target.search '#'
       return true
-    if not @setting.enabled
+      
+    if 'object' isnt typeof @setting.enabled
+      @setting.enabled = {}
+    if not @setting.enabled[sender.target]
       return true
     if commandManager.isBanned sender
       return true
@@ -412,13 +415,18 @@ class CommandTitle extends virtual_class Icommand, EventEmitter
   _save: ()->
     @storage.set 'titleParser', @setting
   
-  _toggle: (value)->
+  _toggle: (value, sender)->
+    if 'object' isnt typeof @setting.enabled
+      @setting.enabled = {}
+    if '#' isnt sender.target.slice 0, 1
+      return false
     if value isnt 'on' and value isnt 'off'
       return false
+    
     if value is 'on'
-      @setting.enabled = true
+      @setting.enabled[sender.target] = true
     else
-      @setting.enabled = false
+      @setting.enabled[sender.target] = false
     @_save()
     return true
       
