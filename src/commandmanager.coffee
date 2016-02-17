@@ -140,7 +140,7 @@ class CommandManager extends EventEmitter
     if not textRouter.isCommand
       result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
     else
-      result.isCommand = textRouter.isCommand text, sender
+      result.isCommand = isCommand || textRouter.isCommand text, sender
     
     result.sender = sender
     result.text = text
