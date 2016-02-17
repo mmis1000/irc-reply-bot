@@ -4,7 +4,7 @@ Senter = require '../senter.js'
 {UTF8LengthSplit} = require '../util.js'
 
 class TelegramRouter extends TextRouter
-  constructor: (@token, @channelPostFix = 'tg', @userPostFix = 'tg')->
+  constructor: (@token, @channelPostFix = 'tg', @userPostFix = 'tg', @requireTag = false)->
     super
     @nameMap = {}
     @_selfName = null
@@ -145,5 +145,24 @@ class TelegramRouter extends TextRouter
     @messageBuffer = {}
   
   toDisplayName: (str)-> "@#{str.replace /@.*/, ''}"
+
+  isCommand: (str, sender)->
+    if not str.match /^\//
+      return false
+    
+    temp = str.replace /^\//, ''
+    .split /\u0020/g
+    
+    if @requireTag
+      
+      if sender.target.match /#[^-]/
+        return true
+      
+      if not temp[0].match /@/
+        return false
+      else
+        return true
+    else
+      true
 
 module.exports = TelegramRouter

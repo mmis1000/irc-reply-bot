@@ -33,5 +33,7 @@ class IRouter extends Defer
   getRouterIdentifier : ()->
     
   toDisplayName: (str)-> str.replace /@.*/, ''
-    
+  
+  isCommand: null
+  
 module.exports = IRouter

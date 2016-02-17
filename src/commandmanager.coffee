@@ -137,7 +137,11 @@ class CommandManager extends EventEmitter
     result = {}
     commandManager = @
     
-    result.isCommand = isCommand || (text.search escapeRegex @identifier) == 0 || !!((text.search escapeRegex textRouter.getIdentifier()) == 0 if textRouter.getIdentifier)
+    if not textRouter.isCommand
+      result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
+    else
+      result.isCommand = textRouter.isCommand text, sender
+    
     result.sender = sender
     result.text = text
     result.fromBinding = false
