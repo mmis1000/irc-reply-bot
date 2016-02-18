@@ -37,6 +37,7 @@ TelegramAPI.prototype.startPolling = function (timeout) {
             } catch (err) {
                 console.error(err)
             }
+            self.pollingEnabled = false;
             self.startPolling(timeout)
         }
     }
