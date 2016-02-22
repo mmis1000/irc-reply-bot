@@ -114,12 +114,12 @@ class TelegramRouter extends TextRouter
     if (not nobuffer) and @bufferTimeout > 0
       if Array.isArray to
         to.forEach (to)=>
-          @messageBuffer[to + '_' + message_id_temp] = @messageBuffer[to + '_' + message_id_temp] || []
-          @messageBuffer[to + '_' + message_id_temp].push message
+          @messageBuffer[to + '\u0000' + message_id_temp] = @messageBuffer[to + '\u0000' + message_id_temp] || []
+          @messageBuffer[to + '\u0000' + message_id_temp].push message
           @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
       else
-        @messageBuffer[to + '_' + message_id_temp] = @messageBuffer[to + '_' + message_id_temp] || []
-        @messageBuffer[to + '_' + message_id_temp].push message
+        @messageBuffer[to + '\u0000' + message_id_temp] = @messageBuffer[to + '\u0000' + message_id_temp] || []
+        @messageBuffer[to + '\u0000' + message_id_temp].push message
         @bufferTimeoutId = setTimeout (@flushOutput.bind @), @bufferTimeout if not @bufferTimeoutId
       return
     
@@ -132,8 +132,8 @@ class TelegramRouter extends TextRouter
   flushOutput: ()->
     @bufferTimeoutId = null
     for key, value of @messageBuffer
-      channel = (key.split '_')[0]
-      id = (key.split '_')[1]
+      channel = (key.split '\u0000')[0]
+      id = (key.split '\u0000')[1]
       channelTemp = parseInt channel, 10
       channel = channelTemp || channel
       id = parseInt id, 10
