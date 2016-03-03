@@ -32,11 +32,14 @@ TelegramAPI.prototype.startPolling = function (timeout) {
         if (self.pollingEnabled) {
             console.error('request failed to response, restart polling...')
             try {
+                self.currentPollRequest.removeEventListener();
+                self.currentPollRequest.on('error', function () {});
                 self.currentPollRequest.abort();
                 // restart polling...
             } catch (err) {
                 console.error(err)
             }
+            self.lastOffset = null;
             self.pollingEnabled = false;
             self.startPolling(timeout)
         }
@@ -47,14 +50,17 @@ TelegramAPI.prototype.startPolling = function (timeout) {
     this.currentPollRequest = this._poll(timeout, null, function handle(err, response, body) {
         var i;
         if (err || response.statusCode !== 200) {
-            self.emit('error', err || new Error('unexpect response code: ' + response.statusCode));
+            self.lastOffset = null;
+            self.emit('error', err || new Error('unexpect response code: ' + response.statusCode + ' ' + body));
         } else {
             try {
                 body = JSON.parse(body)
             } catch (err) {
+                self.lastOffset = null;
                 self.emit('error', err);
             }
             if (body.ok !== true || !Array.isArray(body.result)) {
+                self.lastOffset = null;
                 self.emit('error', new Error('bad response format: ' + body));
             } else {
                 body.result.forEach(function (update) {
@@ -107,7 +113,7 @@ TelegramAPI.prototype._invoke = function _invoke(apiName, params, cb, multiPart)
     request.post(requestData, function (err, response, body) {
         // console.log(response);
         if (err || response.statusCode !== 200) {
-            return cb(err || new Error('unexpect response code: ' + response.statusCode));
+            return cb(err || new Error('unexpect response code: ' + response.statusCode + ' ' + body));
         }
         try {
             body = JSON.parse(body)
@@ -137,5 +143,20 @@ TelegramAPI.prototype.sendMessage = function sendMessage(chat_id, text, cb, data
     datas.chat_id = chat_id;
     datas.text = text;
     return this._invoke('sendMessage', datas , cb);
+}
+TelegramAPI.prototype.getFile = function sendMessage(file_id, cb, datas) {
+    datas = typeof datas === "object" ? datas : {};
+    datas.file_id = file_id;
+    return this._invoke('getFile', datas , cb);
+}
+TelegramAPI.prototype.getFileContent = function getFileContent(path, cb) { 
+    var requestSettings = {
+        method: 'GET',
+        url: 'https://api.telegram.org/file/bot' + this.token + '/' + path.replace(/^\//, ''),
+        encoding: null
+    };
+    request(requestSettings, function (err, response, body) {
+        cb(err, response, body);
+    })
 }
 module.exports = TelegramAPI
