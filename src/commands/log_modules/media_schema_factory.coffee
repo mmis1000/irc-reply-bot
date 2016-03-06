@@ -2,7 +2,7 @@ getMediaSchema = (mongoose, fileCollectionName = "Files", collectionName = 'Medi
   MediaSchema = mongoose.Schema {
     _id: String
     
-    files: [{ type: mongoose.Schema.Types.ObjectId, ref: fileCollectionName }]
+    files: [{ type: String, ref: fileCollectionName }]
     role: String
     placeHolderText: String
     meta: {}

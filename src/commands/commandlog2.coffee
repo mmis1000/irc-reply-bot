@@ -2,11 +2,13 @@ Icommand = require '../icommand.js'
 mongoose = require 'mongoose'
 moment = require 'moment'
 mubsub = require 'mubsub'
+Grid = require 'gridfs-stream'
+Q = require 'q'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandLogs extends Icommand
-  constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages')->
+  constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages', @gridFSCollectionName = 'FileContent')->
     @defaultPageShow = 10
     @pageShowMax = 15
     @Message = null
@@ -21,32 +23,14 @@ class CommandLogs extends Icommand
     
     console.log @dbpath, "#{@collectionName}Trigger"
     @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
-    #@MessageChannel.subscribe 'update', (obj)->
-    #  console.log '#obj: %j', obj 
-    #@MessageChannel.publish('update', {'command' : 'test'});
+    
   _onDbConnect: (err, cb)=>
+    @gfs = Grid mongoose.connection.db, mongoose.mongo
+    
     if err
       console.error 'db error : '
       console.error err
       return
-    ###
-    MessageSchema = mongoose.Schema {
-      from : String
-      to : String
-      message : String
-      isOnChannel : Boolean
-      time : { type : Date, index : true }
-    }, { collection : @collectionName }
-    
-    self = @
-    MessageSchema.methods.toString = ()->
-      timeStamp = moment @time
-      .utcOffset self.timezone
-      .locale self.locale
-      .format 'YYYY-MM-DD hh:mm:ss a'
-      
-      "#{timeStamp} #{@from} => #{@to}: #{@message}"
-    ###
     
     fileSchemaFactory = require './log_modules/file_schema_factory'
     FileSchema = fileSchemaFactory mongoose
@@ -239,104 +223,6 @@ class CommandLogs extends Icommand
         
         commandManager.sendPv sender, textRouter, "Page #{pageNumber} of total #{maxPage} Pages. Time Zone is #{@timezone}"
     
-  ###
-  _showlog: (sender ,text, args, storage, textRouter, commandManager, list)->
-    if args.length > 4
-      return false
-    
-    pageNumber = if args[2] then (parseInt args[2]) else 1
-    recordsPerPage = if args[3] then (parseInt args[3]) else @defaultPageShow
-    
-    if isNaN pageNumber
-      return false
-    if isNaN recordsPerPage
-      return false
-    
-    if not commandManager.isOp sender.sender
-      if recordsPerPage > @userPageShowMax
-        recordsPerPage = @userPageShowMax
-    
-    result = @_pagelog list, recordsPerPage, pageNumber
-    
-    replys = []
-    
-    for record in result.list
-      date = new Date record.time
-      replys.push "#{date.getFullYear()}/\
-        #{date.getMonth() + 1}/\
-        #{date.getDate()}-\
-        #{date.getHours()}:\
-        #{date.getMinutes()}:\
-        #{date.getSeconds()}
-        #{record.from} =>
-        #{record.to} :
-        #{record.message}"
-    
-    replys.push "page #{result.pageNumber} of #{result.allPage}"
-    textRouter.output replys, sender.sender
-    return true
-    
-  _findlog: (sender ,text, args, storage, textRouter, commandManager, list)->
-    
-    
-    if args.length > 6 || args.length < 4
-      return false
-    if 0 > ["sender", "text", "target"].indexOf args[2]
-      return false
-    
-    pageNumber = if args[4] then (parseInt args[4]) else 1
-    recordsPerPage = if args[5] then (parseInt args[5]) else @defaultPageShow
-    
-    if isNaN pageNumber
-      return false
-    if isNaN recordsPerPage
-      return false
-    
-    
-    try 
-      regex = new RegExp args[3]
-    catch
-      textRouter.output "\u000304invalid regex", sender.sender
-      return true
-    
-    switch args[2]
-      when "sender"
-        list = list.filter (obj)->
-          0 <= obj.from.search regex
-      when "text"
-        list = list.filter (obj)->
-          0 <= obj.message.search regex
-      when "target"
-        list = list.filter (obj)->
-          0 <= obj.to.search regex
-    
-    return @_showlog sender ,text, [args[0], "show", args[4], args[5]], storage, textRouter, commandManager, list
-    
-  _pagelog: (list, itemPerPage, pageNumber)->
-    totalPage = Math.ceil (list.length / itemPerPage)
-    
-    indexStart = list.length - pageNumber * itemPerPage
-    indexEnd = indexStart + itemPerPage
-    
-    indexStart = if (indexStart >= 0) then indexStart else 0
-    indexEnd = if (indexEnd >= 0) then indexEnd else 0
-    indexStart = if (indexStart <= list.length) then indexStart else list.length
-    indexEnd = if (indexEnd <= list.length) then indexEnd else list.length
-    
-    newList = []
-    
-    i = indexStart
-    while i < indexEnd
-      newList.push list[i]
-      i++
-    
-    filteredList = 
-      list : newList
-      pageNumber : pageNumber
-      allPage :totalPage
-    
-    return filteredList
-  ###
   help: (commandPrefix)->
     return [
       "view recent talks, this command will force send to you instead of channel ",
@@ -359,16 +245,14 @@ class CommandLogs extends Icommand
     return false  if not (type in ["message", "output"])
     
     if type is "message"
+    
+      onChannel = 0 is sender.target.search /#/
+      date = content.meta.time or new Date
       
-      if content.asText
-        
+      if content.asText && content.medias.length is 0
         args = commandManager.parseArgs content.text
         
         return false if args[0] is "log"
-        
-        onChannel = 0 is sender.target.search /#/
-        
-        date = content.meta.time or new Date
         
         message = new @Message {
           from : sender.sender
@@ -378,7 +262,70 @@ class CommandLogs extends Icommand
           time : date
           medias: []
         }
-    
+      
+      else if content.medias.length > 0
+        if !@gfs
+          mongoose.connection.once 'open', ()=>
+            @handleRaw sender, type, content, textRouter, commandManager
+          return
+        
+        (Q.all (content.medias.map (media)=>
+          return media.getAllFiles())
+        ).then (files)=>
+          flattenFiles = [].concat.apply([], files);
+          return flattenFiles.map (file)=>
+            writestream = @gfs.createWriteStream {
+              filename: 'file.UID'
+              content_type: file.MIME
+              root: @gridFSCollectionName
+            }
+            if not writestream.write file.content
+              console.log 'waiting for file write finished'
+              writestream.on 'drain', ()->
+                writestream.end();
+            
+            writestream.on 'close', ()->
+              console.log "file: #{file.UID} was writed to db"
+            
+            mongoFile = new @File {
+              _id: file.UID
+              MIME: file.MIME
+              length: file.length
+              photoSize: file.photoSize
+              isThumb: file.isThumb
+              contentSource: 'db'
+              contentSrc: file.UID
+            }
+            mongoFile.save()
+        .then ()=>
+          console.log "all file infos was saved to db"
+          Q.all content.medias.map (media)=>
+            mongoMedia = new @Media {
+              _id: media.id
+              files: (media.files.map (i)-> i.UID)
+              role: media.role
+              placeHolderText: media.placeHolderText
+              meta: media.meta
+            }
+            mongoMedia.save()
+        .then ()=>
+          console.log "all media infos was saved to db"
+          mongoMessage = new @Message {
+            from : sender.sender
+            to : sender.target
+            message : content.text
+            isOnChannel : onChannel
+            time : date
+            medias: (content.medias.map (i)-> i.id)
+          }
+        .then ()=>
+          console.log "message was saved to db"
+        .catch (err)->
+          console.error err.stack
+        return
+      else
+        # should never goto here, if it is, it is a bug
+        return
     if type is "output"
       
       onChannel = 0 is content.target.search /#/

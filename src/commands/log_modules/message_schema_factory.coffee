@@ -7,7 +7,7 @@ getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Medias", 
     to : String
     message : String
     isOnChannel : Boolean
-    files: [{ type: mongoose.Schema.Types.ObjectId, ref: mediaCollectionName }]
+    medias: [{ type: String, ref: mediaCollectionName }]
     time : { type : Date, index : true }
   }, { collection : collectionName }
   
