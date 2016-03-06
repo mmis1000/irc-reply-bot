@@ -50,13 +50,14 @@ class CommandLogs extends Icommand
     
     fileSchemaFactory = require './log_modules/file_schema_factory'
     FileSchema = fileSchemaFactory mongoose
+    @File =  mongoose.model 'File', FileSchema
     
     mediaSchemaFactory = require './log_modules/media_schema_factory'
-    MediaSchema = mediaSchemaFactory mongoose, FileSchema
+    MediaSchema = mediaSchemaFactory mongoose, 'Files'
+    @Media =  mongoose.model 'Media', MediaSchema
     
     messageSchemaFactory = require './log_modules/message_schema_factory'
-    MessageSchema = messageSchemaFactory mongoose, @timezone, @locale, MediaSchema
-    
+    MessageSchema = messageSchemaFactory mongoose, @timezone, @locale, 'Medias'
     @Message =  mongoose.model 'Message', MessageSchema
     
   triggerDbUpdate: (obj)->
