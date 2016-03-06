@@ -29,7 +29,7 @@ class CommandLogs extends Icommand
       console.error 'db error : '
       console.error err
       return
-    
+    ###
     MessageSchema = mongoose.Schema {
       from : String
       to : String
@@ -46,6 +46,16 @@ class CommandLogs extends Icommand
       .format 'YYYY-MM-DD hh:mm:ss a'
       
       "#{timeStamp} #{@from} => #{@to}: #{@message}"
+    ###
+    
+    fileSchemaFactory = require './log_modules/file_schema_factory'
+    FileSchema = fileSchemaFactory mongoose
+    
+    mediaSchemaFactory = require './log_modules/media_schema_factory'
+    MediaSchema = mediaSchemaFactory mongoose, FileSchema
+    
+    messageSchemaFactory = require './log_modules/message_schema_factory'
+    MessageSchema = messageSchemaFactory mongoose, @timezone, @locale, MediaSchema
     
     @Message =  mongoose.model 'Message', MessageSchema
     
@@ -345,23 +355,28 @@ class CommandLogs extends Icommand
     return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    return false  if not (type in ["text", "output"])
+    return false  if not (type in ["message", "output"])
     
-    if type is "text"
+    if type is "message"
       
-      args = commandManager.parseArgs content
-      
-      return false if args[0] is "log"
-      
-      onChannel = 0 is sender.target.search /#/
-      
-      message = new @Message {
-        from : sender.sender
-        to : sender.target
-        message : content
-        isOnChannel : onChannel
-        time : new Date
-      }
+      if content.asText
+        
+        args = commandManager.parseArgs content.text
+        
+        return false if args[0] is "log"
+        
+        onChannel = 0 is sender.target.search /#/
+        
+        date = content.meta.time or new Date
+        
+        message = new @Message {
+          from : sender.sender
+          to : sender.target
+          message : content.text
+          isOnChannel : onChannel
+          time : date
+          medias: []
+        }
     
     if type is "output"
       

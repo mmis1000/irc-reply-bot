@@ -8,6 +8,8 @@ class IRouter extends Defer
 
   input : (message, from, to, channal)->
     
+  inputMessage : (message, from, to, channal)->
+    
   inputMe : (message, from, to, channal)->
   
   whois : (user, callback)->

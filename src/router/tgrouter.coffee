@@ -2,6 +2,9 @@ TextRouter = require './textrouter'
 Telegram = require '../tgapi'
 Senter = require '../senter.js'
 {UTF8LengthSplit} = require '../util.js'
+Message = require '../models/message'
+Media = require '../models/media'
+TelegramFile = require '../models/telegram_file'
 
 class TelegramRouter extends TextRouter
   constructor: (@token, @channelPostFix = 'tg', @userPostFix = 'tg', @requireTag = false)->
@@ -21,9 +24,10 @@ class TelegramRouter extends TextRouter
       return @emit err if err
       @setSelfName res.username
       
+      ###
       @api.on 'message', (message)=>
         
-        # console.log(message)
+        console.log JSON.stringify message, 0, 4
         
         channelId = "#" + message.chat.id.toString()
         
@@ -56,7 +60,77 @@ class TelegramRouter extends TextRouter
           @output message, to, message_id, channelName
         console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + text.replace /\r?\n/g, '\r\n   | '
         @input text, userName, channelId, [], clonedRouter
-      
+      ###
+      @api.on 'message', (message)=>
+        channelId = "#" + message.chat.id.toString()
+        
+        if message.from.username
+          @nameMap[message.from.username] = message.from.id
+          
+        if @channelPostFix
+          channelId += "@" + @channelPostFix
+        userName = message.from.username
+        userName = userName || "undefined_#{message.from.id}"
+        if @userPostFix
+          userName += "@" + @channelPostFix
+        
+        
+        clonedRouter = {}
+        
+        for key, value of @
+          clonedRouter[key] = value
+          if 'function' is typeof value
+            if not value.toString().match /\[native code\]/
+              clonedRouter.key = value.bind @
+              
+        message_id = message.message_id
+        message_ = message
+        clonedRouter.output = (message, to)=>
+                
+          channelName = "#" + message_.chat.id.toString()
+          channelName += "@" + @channelPostFix if @channelPostFix
+          @output message, to, message_id, channelName
+        
+        if message.sticker
+          file = new TelegramFile message.sticker.file_id, @api, {
+            MIME: 'image/webp',
+            length: message.sticker.file_size,
+            size: [message.sticker.width, message.sticker.height]
+          }
+          fileThumb = new TelegramFile message.sticker.thumb.file_id, @api, {
+            MIME: 'image/webp',
+            length: message.sticker.thumb.file_size,
+            size: [message.sticker.thumb.width, message.sticker.thumb.height],
+            isThumb: true
+          }
+          media = new Media {
+            id : "#{message.sticker.file_id}@telegram-sticker",
+            role : 'sticker',
+            placeHolderText : '((sticker))',
+            files: [file, fileThumb]
+          }
+          botMessage = new Message '((sticker))', [media], true, false
+          botMessage.meta.time = new Date message.date * 1000
+          
+          console.log botMessage
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+          
+          ###
+          media.getAllFiles().then (files)->
+            console.log files
+          .catch (err)->
+            console.error err
+          ###
+        if message.text
+          botMessage = new Message message.text, [], true, true
+          botMessage.meta.time = new Date message.date * 1000
+          console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
+          console.log botMessage
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+          
+        
       @on 'output', (m, target, replyId)=>
         console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + @getSelfName() + ' => ' + target + ': ' + m.replace /\r?\n/g, '\r\n   | '
         target = target.replace /@.*$/, ''
@@ -101,6 +175,9 @@ class TelegramRouter extends TextRouter
     sender = new Senter from, to, message, channal
     @emit "input", message, sender, router
   
+  inputMessage : (message, from, to, channal, router)->
+    sender = new Senter from, to, message, channal
+    @emit "message", message, sender, router
   
   output : (message, to, message_id, originalChannel, nobuffer)->
     message_id_temp = message_id

@@ -2,13 +2,13 @@
 Bind = require './core/bind.js'
 Ban = require './core/ban.js'
 Icommand = require './icommand'
-
+Message = require './models/message'
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
     @identifier = "!"
-    @commandFormat = /^[a-zA-Z].*$/g
+    @commandFormat = /^.*$/g
     @keywordPrefix = "^"
     #these command is deeply hook into runtime thus cannot be implement seperately
     @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
@@ -96,6 +96,8 @@ class CommandManager extends EventEmitter
     @defaultRouter = textRouter
     @routers.push textRouter
     
+    @addRouter textRouter
+    ###
     textRouter.on "input", (message, sender)=>
       
       @lastChannel = sender.channel
@@ -109,7 +111,7 @@ class CommandManager extends EventEmitter
     
     textRouter.on "rpl_raw", (reply)=>
       @handleRaw null, "raw", reply, textRouter
-    
+    ###
     opList = @storage.get "ops", @defaultOps
     if opList.length == 0
       textRouter.on 'connect', ()->
@@ -375,8 +377,22 @@ class CommandManager extends EventEmitter
       @lastSender = sender.channel
       
       @handleRaw sender, "text", message, router
+      @handleRaw sender, "message", (new Message message, [], true, true), router
       @handleText sender, message, router
-    
+      
+    textRouter.on "message", (message, sender, router = textRouter)=>
+      
+      @lastChannel = sender.channel
+      @lastSender = sender.channel
+      
+      @handleRaw sender, "message", message, router
+      
+      if message.asText
+        @handleRaw sender, "text", message.text, router
+      
+      if message.asCommand
+        @handleText sender, message.text, router
+      
     textRouter.on "rpl_join", (channel, sender, router = textRouter)=>
       @handleRaw sender, "join", channel, router
     

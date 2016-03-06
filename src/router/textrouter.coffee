@@ -29,6 +29,10 @@ class TextRouter extends IRouter
   input : (message, from, to, channal)->
     sender = new Senter from, to, message, channal
     @emit "input", message, sender
+  
+  inputMessage : (message, from, to, channal)->
+    sender = new Senter from, to, message, channal
+    @emit "message", message, sender
     
   inputMe : (message, from, to, channal)->
     sender = new Senter from, to, message, channal
