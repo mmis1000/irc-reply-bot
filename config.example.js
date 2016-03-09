@@ -44,6 +44,7 @@ var config = {
     var CommandMcStatus = require('./lib/commands/commandmcstatus.js');
     var CommandTranslate = require('./lib/commands/commandtranslate.js');
     var CommandHello = require('./lib/commands/commandhello.js');
+    var CommandGoogle = require('./lib/commands/commandgoogle.js');
     
     commandManager.register ("say", new CommandSay, []);
     commandManager.register ("rainbow", new CommandRainbow, []);
@@ -70,6 +71,11 @@ var config = {
     commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
     commandManager.register ("translate", new CommandTranslate(), ['tr']);
     commandManager.register ("hello", new CommandHello(), ['start']);
+    commandManager.register ("google", new CommandGoogle({
+      tld: "com.tw",
+      lang: "zh-TW",
+      nextText: "下一頁"
+    }), ['g']);
     
     var CommandTranslate = require('./lib/commands/commandtranslate.js');
     commandManager.register ("translate", new CommandTranslate(), ['tr']);
@@ -78,6 +84,13 @@ var config = {
     // mongodb based log command
     //var CommandLog2 = require('./lib/commands/commandlog2.js');
     //commandManager.register ("log", new CommandLog2('mongodb://localhost/test', '+08:00', 'zh-tw'), []);
+    
+    
+    var CommandZhengTai = require('./lib/funnycommands/commandzhengtai.js');
+    commandManager.register ("zhengtai", new CommandZhengTai(), ['cute', '正太']);
+    
+    var CommandFeiZhai = require('./lib/funnycommands/commandfeizhai.js');
+    commandManager.register ("feizhai", new CommandFeiZhai(), ['fat', '肥宅']);
     
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')
