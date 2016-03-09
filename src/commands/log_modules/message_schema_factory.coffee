@@ -1,7 +1,7 @@
 cache = null
 moment = require 'moment'
 
-getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Medias", collectionName = "Messages")->
+getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", collectionName = "Messages")->
   MessageSchema = mongoose.Schema {
     from : String
     to : String

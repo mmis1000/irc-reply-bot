@@ -1,4 +1,4 @@
-getMediaSchema = (mongoose, fileCollectionName = "Files", collectionName = 'Medias')->
+getMediaSchema = (mongoose, fileCollectionName = "File", collectionName = 'Medias')->
   MediaSchema = mongoose.Schema {
     _id: String
     

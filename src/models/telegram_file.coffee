@@ -26,6 +26,8 @@ class TelegramFile extends BaseFile
           return deferred.reject err or now Error 'no content found'
         
         @MIME = res.headers["content-type"]
+        if @meta.overrides and @meta.overrides.MIME
+          @MIME = @meta.overrides.MIME
         @content = body
         @length = body.length
         

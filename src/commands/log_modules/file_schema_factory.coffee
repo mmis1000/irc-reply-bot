@@ -6,6 +6,7 @@ getFileSchema = (mongoose, collectionName = "Files")->
     MIME: String
     length: Number
     photoSize: [Number]
+    duration: Number
     meta: {}
     # these properety should be work at any time
     isThumb: Boolean

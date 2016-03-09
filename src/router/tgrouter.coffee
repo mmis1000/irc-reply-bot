@@ -95,14 +95,16 @@ class TelegramRouter extends TextRouter
           file = new TelegramFile message.sticker.file_id, @api, {
             MIME: 'image/webp',
             length: message.sticker.file_size,
-            size: [message.sticker.width, message.sticker.height]
+            photoSize: [message.sticker.width, message.sticker.height]
           }
           fileThumb = new TelegramFile message.sticker.thumb.file_id, @api, {
             MIME: 'image/webp',
             length: message.sticker.thumb.file_size,
-            size: [message.sticker.thumb.width, message.sticker.thumb.height],
+            photoSize: [message.sticker.thumb.width, message.sticker.thumb.height],
             isThumb: true
           }
+          fileThumb.meta = {overrides:{MIME: 'image/webp'}}
+          
           media = new Media {
             id : "#{message.sticker.file_id}@telegram-sticker",
             role : 'sticker',
@@ -122,6 +124,50 @@ class TelegramRouter extends TextRouter
           .catch (err)->
             console.error err
           ###
+        if message.photo
+          files = message.photo.map (data)=>
+            new TelegramFile data.file_id, @api, {
+              length: data.file_size,
+              photoSize: [data.width, data.height]
+            }
+          files[0].isThumb = true;
+          console.log files
+          
+          media = new Media {
+            id : "#{message.photo[0].file_id}@telegram-photo",
+            role : 'photo',
+            placeHolderText : '((photo))',
+            files: files
+          }
+          botMessage = new Message '((photo))', [media], true, false
+          botMessage.meta.time = new Date message.date * 1000
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+          
+        if message.video
+          videoThumb = new TelegramFile message.video.thumb.file_id, @api, {
+            length: message.video.thumb.file_size,
+            photoSize: [message.video.thumb.width, message.video.thumb.height],
+            isThumb: true
+          }
+          video = new TelegramFile message.video.file_id, @api, {
+            length: message.video.file_size,
+            photoSize: [message.video.width, message.video.height],
+            duration: message.video.duration
+          }
+          media = new Media {
+            id : "#{message.video.file_id}@telegram-video",
+            role : 'video',
+            placeHolderText : '((video))',
+            files: [video, videoThumb]
+          }
+          botMessage = new Message '((video))', [media], true, false
+          botMessage.meta.time = new Date message.date * 1000
+          
+          # console.log botMessage
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+        
         if message.text
           botMessage = new Message message.text, [], true, true
           botMessage.meta.time = new Date message.date * 1000

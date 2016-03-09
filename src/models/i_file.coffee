@@ -7,7 +7,7 @@ class IFile
     @length = null;
     @photoSize = null;
     @meta = {};
-    
+    @duration = null;
     # these properety should be work at any time
     @isThumb = null;
     @contentSource = null;

@@ -275,18 +275,29 @@ class CommandLogs extends Icommand
           flattenFiles = [].concat.apply([], files);
           return flattenFiles.map (file)=>
             writestream = @gfs.createWriteStream {
-              filename: 'file.UID'
+              filename: file.UID
               content_type: file.MIME
               root: @gridFSCollectionName
             }
+            console.log {
+              filename: file.UID
+              content_type: file.MIME
+              root: @gridFSCollectionName
+            }
+            stream = require 'stream'
+            bufferStream = new stream.PassThrough()
+            bufferStream.end new Buffer file.content
+            bufferStream.pipe writestream
+            
+            ###
             if not writestream.write file.content
               console.log 'waiting for file write finished'
               writestream.on 'drain', ()->
                 writestream.end();
-            
+            ###
             writestream.on 'close', ()->
               console.log "file: #{file.UID} was writed to db"
-            
+            ###
             mongoFile = new @File {
               _id: file.UID
               MIME: file.MIME
@@ -297,9 +308,25 @@ class CommandLogs extends Icommand
               contentSrc: file.UID
             }
             mongoFile.save()
+            ###
+            query = @File.findOneAndUpdate {
+              _id: file.UID
+            }, {
+              _id: file.UID
+              MIME: file.MIME
+              length: file.length
+              photoSize: file.photoSize
+              isThumb: file.isThumb
+              contentSource: 'db'
+              contentSrc: file.UID
+            }, {
+              upsert: true
+            }
+            query.exec()
         .then ()=>
           console.log "all file infos was saved to db"
           Q.all content.medias.map (media)=>
+            ###
             mongoMedia = new @Media {
               _id: media.id
               files: (media.files.map (i)-> i.UID)
@@ -308,6 +335,20 @@ class CommandLogs extends Icommand
               meta: media.meta
             }
             mongoMedia.save()
+            ###
+            
+            query = @Media.findOneAndUpdate {
+              _id: media.id
+            }, {
+              _id: media.id
+              files: (media.files.map (i)-> i.UID)
+              role: media.role
+              placeHolderText: media.placeHolderText
+              meta: media.meta
+            }, {
+              upsert: true
+            }
+            query.exec()
         .then ()=>
           console.log "all media infos was saved to db"
           mongoMessage = new @Message {
@@ -318,7 +359,9 @@ class CommandLogs extends Icommand
             time : date
             medias: (content.medias.map (i)-> i.id)
           }
-        .then ()=>
+          mongoMessage.save()
+        .then (message)=>
+          @triggerDbUpdate message
           console.log "message was saved to db"
         .catch (err)->
           console.error err.stack
@@ -340,7 +383,7 @@ class CommandLogs extends Icommand
     
     message.save (err, remoteMessage)=>
       if err?
-        console.error "error during save message: #{err.toString()}"
+        return console.error "error during save message: #{err.toString()}"
       #console.log 'save complete!'
       @triggerDbUpdate message
       null
