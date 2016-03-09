@@ -9,15 +9,25 @@ function TelegramAPI (token) {
     this.token = token;
     
     this.lastOffset = null;
+    this.pollCount = 0;
     
     this.pollingTimeout = null;
     this.pollingTimeoutId = null;
     
     this.currentPollRequest = null;
+    
+    this.debug();
 }
 util.inherits(TelegramAPI, EventEmitter);
 
-
+TelegramAPI.prototype.debug = function () {
+    function log() {
+        console.log('polling at: ' + self.lastOffset + ', count: ' + self.pollCount)
+    }
+    var self = this;
+    log();
+    setInterval(log, 10 * 60 * 1000)
+}
 TelegramAPI.prototype.startPolling = function (timeout) {
     timeout = timeout == null ? 40 : timeout;
     
@@ -48,6 +58,8 @@ TelegramAPI.prototype.startPolling = function (timeout) {
     clearTimeout(this.pollingTimeoutId);
     this.pollingTimeoutId = setTimeout(checkTimeout, this.pollingTimeout);
     this.currentPollRequest = this._poll(timeout, null, function handle(err, response, body) {
+        self.pollCount++;
+        console.log(err, response ? response.statusCode : null, body)
         var i;
         if (err || response.statusCode !== 200) {
             self.lastOffset = null;
