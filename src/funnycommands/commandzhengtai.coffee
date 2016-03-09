@@ -17,7 +17,7 @@ zeta = (z) ->
   1 + secondTerm * thirdTerm
 
 ln = (value)->
-  (Math.log value) / Math.log 2
+  (Math.log value) / (Math.log Math.E)
 
 class CommandZhengTai extends Icommand
   constructor: ()->
