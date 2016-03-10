@@ -105,7 +105,7 @@ TelegramAPI.prototype._poll = function _poll (timeout, offset, cb) {
     if (offset != null) {
         param.offset = offset
     }
-    request.get({url:'https://api.telegram.org/bot' + this.token + '/getUpdates', qs:param}, cb)
+    return request.get({url:'https://api.telegram.org/bot' + this.token + '/getUpdates', qs:param}, cb)
 }
 
 TelegramAPI.prototype._invoke = function _invoke(apiName, params, cb, multiPart) {
