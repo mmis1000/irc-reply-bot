@@ -261,6 +261,7 @@ class CommandLogs extends Icommand
           isOnChannel : onChannel
           time : date
           medias: []
+          meta: content.meta
         }
       
       else if content.medias.length > 0
@@ -358,6 +359,7 @@ class CommandLogs extends Icommand
             isOnChannel : onChannel
             time : date
             medias: (content.medias.map (i)-> i.id)
+            meta: content.meta
           }
           mongoMessage.save()
         .then (message)=>

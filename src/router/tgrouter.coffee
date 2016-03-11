@@ -113,7 +113,7 @@ class TelegramRouter extends TextRouter
           }
           botMessage = new Message '((sticker))', [media], true, false
           botMessage.meta.time = new Date message.date * 1000
-          
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
           # console.log botMessage
           
           @inputMessage botMessage, userName, channelId, [], clonedRouter
@@ -141,6 +141,7 @@ class TelegramRouter extends TextRouter
           }
           botMessage = new Message '((photo))', [media], true, false
           botMessage.meta.time = new Date message.date * 1000
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
           
           @inputMessage botMessage, userName, channelId, [], clonedRouter
           
@@ -163,6 +164,7 @@ class TelegramRouter extends TextRouter
           }
           botMessage = new Message '((video))', [media], true, false
           botMessage.meta.time = new Date message.date * 1000
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
           
           # console.log botMessage
           
@@ -171,6 +173,8 @@ class TelegramRouter extends TextRouter
         if message.text
           botMessage = new Message message.text, [], true, true
           botMessage.meta.time = new Date message.date * 1000
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
+          
           console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
           # console.log botMessage
           

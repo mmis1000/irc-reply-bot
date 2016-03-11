@@ -9,6 +9,7 @@ getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", c
     isOnChannel : Boolean
     medias: [{ type: String, ref: mediaCollectionName }]
     time : { type : Date, index : true }
+    meta: {}
   }, { collection : collectionName }
   
   MessageSchema.methods.toString = ()->

@@ -42,7 +42,7 @@ TelegramAPI.prototype.startPolling = function (timeout) {
         if (self.pollingEnabled) {
             console.error('request failed to response, restart polling...')
             try {
-                self.currentPollRequest.removeEventListener();
+                self.currentPollRequest.removeAllListeners();
                 self.currentPollRequest.on('error', function () {});
                 self.currentPollRequest.abort();
                 // restart polling...
