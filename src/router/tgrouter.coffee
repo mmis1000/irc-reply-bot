@@ -111,7 +111,7 @@ class TelegramRouter extends TextRouter
             placeHolderText : '((sticker))',
             files: [file, fileThumb]
           }
-          botMessage = new Message '((sticker))', [media], true, false
+          botMessage = new Message (message.text or '((sticker))'), [media], true, false
           botMessage.meta.time = new Date message.date * 1000
           botMessage.meta['_' + @getRouterIdentifier()] = message;
           # console.log botMessage
@@ -139,7 +139,7 @@ class TelegramRouter extends TextRouter
             placeHolderText : '((photo))',
             files: files
           }
-          botMessage = new Message '((photo))', [media], true, false
+          botMessage = new Message (message.caption or '((photo))'), [media], true, false, (!!message.caption)
           botMessage.meta.time = new Date message.date * 1000
           botMessage.meta['_' + @getRouterIdentifier()] = message;
           
@@ -162,11 +162,51 @@ class TelegramRouter extends TextRouter
             placeHolderText : '((video))',
             files: [video, videoThumb]
           }
-          botMessage = new Message '((video))', [media], true, false
+          botMessage = new Message (message.caption or '((video))'), [media], true, false, (!!message.caption)
           botMessage.meta.time = new Date message.date * 1000
           botMessage.meta['_' + @getRouterIdentifier()] = message;
           
           # console.log botMessage
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+        
+        if message.audio
+          audio = new TelegramFile message.audio.file_id, @api, {
+            length: message.audio.file_size,
+            duration: message.audio.duration,
+            MIME: message.voice.mime_type
+          }
+          media = new Media {
+            id : "#{message.audio.file_id}@telegram-audio",
+            role : 'audio',
+            placeHolderText : '((audio))',
+            files: [audio],
+            meta : {
+              performer: message.audio.performer
+              title: message.audio.title
+            }
+          }
+          botMessage = new Message (message.text or '((audio))'), [media], true, false
+          botMessage.meta.time = new Date message.date * 1000
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
+          
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+        
+        if message.voice
+          voice = new TelegramFile message.voice.file_id, @api, {
+            length: message.voice.file_size,
+            duration: message.voice.duration,
+            MIME: message.voice.mime_type,
+          }
+          media = new Media {
+            id : "#{message.voice.file_id}@telegram-voice",
+            role : 'audio',
+            placeHolderText : '((voice))',
+            files: [voice]
+          }
+          botMessage = new Message (message.text or '((voice))'), [media], true, false
+          botMessage.meta.time = new Date message.date * 1000
+          botMessage.meta['_' + @getRouterIdentifier()] = message;
           
           @inputMessage botMessage, userName, channelId, [], clonedRouter
         
