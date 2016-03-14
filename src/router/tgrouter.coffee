@@ -174,8 +174,9 @@ class TelegramRouter extends TextRouter
           audio = new TelegramFile message.audio.file_id, @api, {
             length: message.audio.file_size,
             duration: message.audio.duration,
-            MIME: message.voice.mime_type
+            MIME: message.audio.mime_type
           }
+          audio.meta = {overrides:{MIME: message.audio.mime_type}}
           media = new Media {
             id : "#{message.audio.file_id}@telegram-audio",
             role : 'audio',
@@ -198,6 +199,7 @@ class TelegramRouter extends TextRouter
             duration: message.voice.duration,
             MIME: message.voice.mime_type,
           }
+          voice.meta = {overrides:{MIME: message.voice.mime_type}}
           media = new Media {
             id : "#{message.voice.file_id}@telegram-voice",
             role : 'audio',
