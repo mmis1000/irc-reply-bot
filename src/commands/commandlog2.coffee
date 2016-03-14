@@ -275,6 +275,8 @@ class CommandLogs extends Icommand
         ).then (files)=>
           flattenFiles = [].concat.apply([], files);
           return flattenFiles.map (file)=>
+            @_saveFile file
+            ###
             writestream = @gfs.createWriteStream {
               filename: file.UID
               content_type: file.MIME
@@ -290,26 +292,9 @@ class CommandLogs extends Icommand
             bufferStream.end new Buffer file.content
             bufferStream.pipe writestream
             
-            ###
-            if not writestream.write file.content
-              console.log 'waiting for file write finished'
-              writestream.on 'drain', ()->
-                writestream.end();
-            ###
             writestream.on 'close', ()->
               console.log "file: #{file.UID} was writed to db"
-            ###
-            mongoFile = new @File {
-              _id: file.UID
-              MIME: file.MIME
-              length: file.length
-              photoSize: file.photoSize
-              isThumb: file.isThumb
-              contentSource: 'db'
-              contentSrc: file.UID
-            }
-            mongoFile.save()
-            ###
+            
             query = @File.findOneAndUpdate {
               _id: file.UID
             }, {
@@ -324,20 +309,12 @@ class CommandLogs extends Icommand
               upsert: true
             }
             query.exec()
+            ###
         .then ()=>
           console.log "all file infos was saved to db"
           Q.all content.medias.map (media)=>
+            @_saveMedia media
             ###
-            mongoMedia = new @Media {
-              _id: media.id
-              files: (media.files.map (i)-> i.UID)
-              role: media.role
-              placeHolderText: media.placeHolderText
-              meta: media.meta
-            }
-            mongoMedia.save()
-            ###
-            
             query = @Media.findOneAndUpdate {
               _id: media.id
             }, {
@@ -350,6 +327,7 @@ class CommandLogs extends Icommand
               upsert: true
             }
             query.exec()
+            ###
         .then ()=>
           console.log "all media infos was saved to db"
           mongoMessage = new @Message {
@@ -392,5 +370,80 @@ class CommandLogs extends Icommand
       
     
     return true
+  
+  
+  _saveFile: (file)->
+    defered = Q.defer()
+    @File.findOne {_id: file.UID}
+    .then (doc)=>
+      if doc
+        console.log "file #{file.UID} existed. skipping..."
+        defered.resolve doc
+        throw new Error 'doc exist'
+      writestream = @gfs.createWriteStream {
+        filename: file.UID
+        content_type: file.MIME
+        root: @gridFSCollectionName
+      }
+      console.log {
+        filename: file.UID
+        content_type: file.MIME
+        root: @gridFSCollectionName
+      }
+      stream = require 'stream'
+      bufferStream = new stream.PassThrough()
+      bufferStream.end new Buffer file.content
+      bufferStream.pipe writestream
+      
+      writestream.on 'close', ()->
+        console.log "file: #{file.UID} was writed to db"
+      
+      query = @File.findOneAndUpdate {
+        _id: file.UID
+      }, {
+        _id: file.UID
+        MIME: file.MIME
+        length: file.length
+        photoSize: file.photoSize
+        isThumb: file.isThumb
+        contentSource: 'db'
+        contentSrc: file.UID
+      }, {
+        upsert: true
+      }
+      query.exec()
+    .then (file)->
+      defered.resolve file
+    .catch (err)->
+      defered.reject err
 
+    defered.promise
+    
+  _saveMedia: (media)->
+    defered = Q.defer()
+    @Media.findOne {_id: media.id}
+    .then (doc)=>
+      if doc
+        console.log "media #{media.id} existed. skipping..."
+        defered.resolve doc
+        throw new Error 'doc exist'
+      @Media.findOneAndUpdate {
+        _id: media.id
+      }, {
+        _id: media.id
+        files: (media.files.map (i)-> i.UID)
+        role: media.role
+        placeHolderText: media.placeHolderText
+        meta: media.meta
+      }, {
+        upsert: true
+      }
+      .exec()
+    .then (media)->
+      defered.resolve media
+    .catch (err)->
+      defered.reject err
+
+    defered.promise
+    
 module.exports = CommandLogs
