@@ -54,6 +54,8 @@ class CommandLogs extends Icommand
     clonedObj.time = obj.time
     clonedObj.isOnChannel = obj.isOnChannel
     clonedObj.message = obj.message
+    clonedObj.medias = obj.medias
+    clonedObj.meta = obj.meta
     clonedObj._id = obj._id
     
     #@MessageChannel.publish('update', {'command' : 'test'});
