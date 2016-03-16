@@ -112,7 +112,10 @@ TelegramAPI.prototype._invoke = function _invoke(apiName, params, cb, multiPart)
     cb = cb || function () {};
     var targetURL = 'https://api.telegram.org/bot' + this.token + '/' + apiName;
     
-    var requestData = {url: targetURL};
+    var requestData = {
+        url: targetURL,
+        timeout: 15000 // 15 sec
+    };
     if (!multiPart || !params) {
         params = params || {};
         requestData.form = params;
