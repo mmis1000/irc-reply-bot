@@ -192,7 +192,7 @@ class CommandManager extends EventEmitter
       @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
 
   register: (keyword, iCommand, aliasList)->
-    if not iCommand instanceof Icommand
+    if not (iCommand instanceof Icommand)
       iCommand = Icommand.__createAsInstance__ iCommand
     
     @commands.push keyword

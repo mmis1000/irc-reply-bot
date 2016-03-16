@@ -16,7 +16,9 @@ class Icommand
   
   handleRaw: (sender, type, content, textRouter, commandManager, event)->return false
   
-  __createAsInstance__: (obj)->
+  isBindSymbol: ()-> false
+  
+  Icommand.__createAsInstance__ = (obj)->
     instance = new Icommand
     for key, value of obj
       instance[key] = value
