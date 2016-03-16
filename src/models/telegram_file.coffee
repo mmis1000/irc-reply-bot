@@ -11,8 +11,24 @@ class TelegramFile extends BaseFile
     for key, value of options
       if @hasOwnProperty key
         @[key] = value
-        
-  getFile: (cb)->
+  
+  getFile: (cb, retryTimes = 1, defered = Q.defer())->
+    defered.promise.nodeify cb
+    @_getFile (err)=>
+      if err and retryTimes > 0
+        console.log "Error get file #{@contentSrc}. retry after 5 seconds"
+        return setTimeout ()=>
+          console.log 'retry start'
+          @getFile null, retryTimes - 1, defered
+        , 5000
+      if err
+        defered.reject err
+      console.log "File #{@contentSrc} retrieved."
+      defered.resolve @
+      
+    defered.promise
+       
+  _getFile: (cb, retryTimes = 1)->
     deferred = Q.defer()
     deferred.promise.nodeify cb
     
