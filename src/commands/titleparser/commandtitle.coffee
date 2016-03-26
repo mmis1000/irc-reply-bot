@@ -29,7 +29,7 @@ MAX_SCREEN_SIZE_Y = 2400
  * emit : beforequery
  * emit : afterquery
 ###
-class CommandTitle extends virtual_class Icommand, EventEmitter
+class CommandTitle extends virtual_class EventEmitter, Icommand
   constructor: (@storage)->
     @debug = true
     

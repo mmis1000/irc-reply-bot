@@ -20,8 +20,9 @@ class Icommand
   
   Icommand.__createAsInstance__ = (obj)->
     instance = new Icommand
-    for key, value of obj
-      instance[key] = value
-    instance
+    for key, value of instance
+      if not obj[key]?
+        obj[key] = instance[key]
+    obj
   
 module.exports = Icommand
