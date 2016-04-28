@@ -91,6 +91,7 @@ class TelegramRouter extends TextRouter
           channelName += "@" + @channelPostFix if @channelPostFix
           @output message, to, message_id, channelName
         
+        ###
         if message.sticker
           file = new TelegramFile message.sticker.file_id, @api, {
             MIME: 'image/webp',
@@ -118,12 +119,6 @@ class TelegramRouter extends TextRouter
           
           @inputMessage botMessage, userName, channelId, [], clonedRouter
           
-          ###
-          media.getAllFiles().then (files)->
-            console.log files
-          .catch (err)->
-            console.error err
-          ###
         if message.photo
           files = message.photo.map (data)=>
             new TelegramFile data.file_id, @api, {
@@ -220,6 +215,22 @@ class TelegramRouter extends TextRouter
           console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
           # console.log botMessage
           
+          @inputMessage botMessage, userName, channelId, [], clonedRouter
+        ###
+        botMessage = createBotMessage message, @
+        if botMessage
+          if message.text
+            console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
+          
+          if message.reply_to_message
+            targetMessage = createBotMessage message.reply_to_message, @
+            if targetMessage
+              botMessage.replyTo = {};
+              botMessage.replyTo.message = targetMessage
+              botMessage.replyTo.sender = createSenderFromMessage message.reply_to_message, @
+          if message.forward_from
+            botMessage.forwardFrom = createSenderFromUser message.forward_from, @
+            
           @inputMessage botMessage, userName, channelId, [], clonedRouter
           
         
@@ -333,5 +344,149 @@ class TelegramRouter extends TextRouter
         return true
     else
       true
+
+createBotMessage = (message, telegramRouter)->
+  
+  if message.text
+    botMessage = new Message message.text, [], true, true
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+    
+  
+  if message.sticker
+    file = new TelegramFile message.sticker.file_id, telegramRouter.api, {
+      MIME: 'image/webp',
+      length: message.sticker.file_size,
+      photoSize: [message.sticker.width, message.sticker.height]
+    }
+    fileThumb = new TelegramFile message.sticker.thumb.file_id, telegramRouter.api, {
+      MIME: 'image/webp',
+      length: message.sticker.thumb.file_size,
+      photoSize: [message.sticker.thumb.width, message.sticker.thumb.height],
+      isThumb: true
+    }
+    fileThumb.meta = {overrides:{MIME: 'image/webp'}}
+    
+    media = new Media {
+      id : "#{message.sticker.file_id}@telegram-sticker",
+      role : 'sticker',
+      placeHolderText : '((sticker))',
+      files: [file, fileThumb]
+    }
+    botMessage = new Message (message.text or '((sticker))'), [media], true, false
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+  if message.photo
+    files = message.photo.map (data)=>
+      new TelegramFile data.file_id, telegramRouter.api, {
+        length: data.file_size,
+        photoSize: [data.width, data.height]
+      }
+    files[0].isThumb = true;
+    console.log files
+    
+    media = new Media {
+      id : "#{message.photo[0].file_id}@telegram-photo",
+      role : 'photo',
+      placeHolderText : '((photo))',
+      files: files
+    }
+    botMessage = new Message (message.caption or '((photo))'), [media], true, false, (!!message.caption)
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+    
+  if message.video
+    videoThumb = new TelegramFile message.video.thumb.file_id, telegramRouter.api, {
+      length: message.video.thumb.file_size,
+      photoSize: [message.video.thumb.width, message.video.thumb.height],
+      isThumb: true
+    }
+    video = new TelegramFile message.video.file_id, telegramRouter.api, {
+      length: message.video.file_size,
+      photoSize: [message.video.width, message.video.height],
+      duration: message.video.duration
+    }
+    media = new Media {
+      id : "#{message.video.file_id}@telegram-video",
+      role : 'video',
+      placeHolderText : '((video))',
+      files: [video, videoThumb]
+    }
+    botMessage = new Message (message.caption or '((video))'), [media], true, false, (!!message.caption)
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+  
+  if message.audio
+    audio = new TelegramFile message.audio.file_id, telegramRouter.api, {
+      length: message.audio.file_size,
+      duration: message.audio.duration,
+      MIME: message.audio.mime_type
+    }
+    audio.meta = {overrides:{MIME: message.audio.mime_type}}
+    media = new Media {
+      id : "#{message.audio.file_id}@telegram-audio",
+      role : 'audio',
+      placeHolderText : '((audio))',
+      files: [audio],
+      meta : {
+        performer: message.audio.performer
+        title: message.audio.title
+      }
+    }
+    botMessage = new Message (message.text or '((audio))'), [media], true, false
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+  
+  if message.voice
+    voice = new TelegramFile message.voice.file_id, telegramRouter.api, {
+      length: message.voice.file_size,
+      duration: message.voice.duration,
+      MIME: message.voice.mime_type,
+    }
+    voice.meta = {overrides:{MIME: message.voice.mime_type}}
+    media = new Media {
+      id : "#{message.voice.file_id}@telegram-voice",
+      role : 'audio',
+      placeHolderText : '((voice))',
+      files: [voice]
+    }
+    botMessage = new Message (message.text or '((voice))'), [media], true, false
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+  
+  if botMessage
+    if telegramRouter.channelPostFix
+      botMessage.meta.message_id = message.message_id + '@' + telegramRouter.channelPostFix
+    else
+      botMessage.meta.message_id = message.message_id
+  
+  return botMessage
+
+createSenderFromMessage = (message, telegramRouter)->
+  channelId = "#" + message.chat.id.toString()
+  if telegramRouter.channelPostFix
+    channelId += "@" + telegramRouter.channelPostFix
+  userName = message.from.username
+  userName = userName || "undefined_#{message.from.id}"
+
+  if telegramRouter.channelPostFix
+    userName += "@" + telegramRouter.channelPostFix
+
+  sender = new Senter userName, channelId, message, []
+  sender
+
+createSenderFromUser = (user, telegramRouter)->
+  channelId = "#__unknown__"
+  if telegramRouter.channelPostFix
+    channelId += "@" + telegramRouter.channelPostFix
+
+  userName = user.username
+  userName = userName || "undefined_#{user.id}"
+
+  if telegramRouter.channelPostFix
+    userName += "@" + telegramRouter.channelPostFix
+
+  sender = new Senter userName, channelId, null, []
+  sender
 
 module.exports = TelegramRouter
