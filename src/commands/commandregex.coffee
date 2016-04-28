@@ -73,9 +73,9 @@ class CommandRegex extends Icommand
       maybeACommand = !!content.text.match /^s\//
       sayer = sender.sender
     else
-      result = @_parseCommand tags[2].text
-      sayer = tags[1].text
-      maybeACommand = !!tags[2].text.match /^s\//
+      result = @_parseCommand tags[2]
+      sayer = tags[1]
+      maybeACommand = !!tags[2].match /^s\//
       referredBy = sender.sender
     
     if content.replyTo
