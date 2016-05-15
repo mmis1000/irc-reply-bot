@@ -21,9 +21,9 @@ class TelegramRouter extends TextRouter
     @api = new Telegram @token
     @api.startPolling 40
     @api.getMe (err, res)=>
-      return @emit err if err
+      return @emit 'error', err if err
       @setSelfName res.username
-      
+      @_botInfo = res
       ###
       @api.on 'message', (message)=>
         
@@ -327,9 +327,10 @@ class TelegramRouter extends TextRouter
   toDisplayName: (str)-> "@#{str.replace /@.*/, ''}"
 
   isCommand: (str, sender)->
-    if not str.match /^\//
-      return false
     
+    if (not str.match /^\//) or ((str.match /@/) and not (str.match new RegExp "@#{@_botInfo.username}($|[\\r\\n\\s])"))
+      return false
+      
     temp = str.replace /^\//, ''
     .split /\u0020/g
     
