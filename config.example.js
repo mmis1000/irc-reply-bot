@@ -92,6 +92,19 @@ var config = {
     var CommandFeiZhai = require('./lib/funnycommands/commandfeizhai.js');
     commandManager.register ("feizhai", new CommandFeiZhai(), ['fat', '肥宅']);
     
+    var CommandChannelName = require('./lib/commands/commandchannelname.js');
+    commandManager.register ("channel_name", new CommandChannelName(), []);
+    
+    var CommandEchoReply = require('./lib/commands/commandechoreply.js');
+    commandManager.register ("echo_reply", new CommandEchoReply(), []);
+    
+    var CommandReplyHtml = require('./lib/commands/commandreplyhtml.js');
+    commandManager.register ("reply_html", new CommandReplyHtml(), []);
+    
+    var CommandUpsideDown = require('./lib/commands/commandupsidedown.js');
+    commandManager.register ("upsidedown", new CommandUpsideDown(), ['upd']);
+    
+    
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')
       commandManager.register ("title", new CommandTitle(helper.createStorage(titleParserConfigPath)), []);
