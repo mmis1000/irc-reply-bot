@@ -73,8 +73,8 @@ class CommandManager extends EventEmitter
     @register 'deop', deopCommand, []
     
     sudoCommand =
-      handle: (sender ,text, args, storage, textRouter, commandManager)=>
-        @_commandSudo sender ,text, args, storage, textRouter, commandManager
+      handle: (sender ,text, args, storage, textRouter, commandManager, fromBinding, originalMessage)=>
+        @_commandSudo sender ,text, args, storage, textRouter, commandManager, originalMessage
       help: (commandPrefix)->
         return [
           "update current user session to op session! usage : ",
@@ -129,7 +129,7 @@ class CommandManager extends EventEmitter
     
     return event
     
-  handleText: (sender, text, textRouter, isCommand = false, fromBinding = false)->
+  handleText: (sender, text, textRouter, isCommand = false, fromBinding = false, originalMessage = null)->
     currentIdentifier = @identifier
     if textRouter.getIdentifier
       currentIdentifier = textRouter.getIdentifier()
@@ -186,7 +186,7 @@ class CommandManager extends EventEmitter
     if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
       if ( @handleRaw sender, "before_command", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
         return false
-      if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
+      if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding, originalMessage)
         @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{currentIdentifier} #{command}"
     else
       @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
@@ -263,7 +263,7 @@ class CommandManager extends EventEmitter
     }, router
     
     router.output text, sender.sender
-
+  
   sendChannel: (sender, router, text)->
     if not Array.isArray sender.channel
       targets = [sender.channel]
@@ -277,6 +277,19 @@ class CommandManager extends EventEmitter
       
     router.output text, sender.channel
 
+  sendMessage: (sender, router, message)->
+    if 0 == sender.target.search /^#/
+      target = sender.target
+    else
+      target = sender.sender
+    
+    @handleRaw sender, 'outputMessage', {
+      message: message,
+      target: target
+    }, router
+    
+    router.outputMessage message, target
+  
   parseArgs: (text)->
     if @currentRouter.parseArgs
       return @currentRouter.parseArgs text
@@ -313,13 +326,18 @@ class CommandManager extends EventEmitter
   _commandOp: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2
       return false
+      
+    newOp = textRouter.fromDisplayName args[1]
+    
     ops = @storage.get "ops", @defaultOps
-    index = ops.indexOf args[1]
+    index = ops.indexOf newOp
+    
     if 0 > index
-      ops.push args[1]
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "oped #{args[1]}"
+      ops.push newOp
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "oped #{newOp}"
     else
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is already op!"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{newOp} is already op!"
+    
     @storage.set "ops", ops
     return true
 
@@ -336,7 +354,7 @@ class CommandManager extends EventEmitter
     @storage.set "ops", ops
     return true
 
-  _commandSudo: (sender ,text, args, storage, textRouter, commandManager)->
+  _commandSudo: (sender ,text, args, storage, textRouter, commandManager, originalMessage)->
     if args.length != 1
       command = args[1..].join ' '
     
@@ -346,7 +364,7 @@ class CommandManager extends EventEmitter
     
     if @isOp sender.sender
       if command
-        @handleText sender, command, textRouter, true
+        @handleText sender, command, textRouter, true, false
       else
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "logout successfully"
         @logout sender.sender
@@ -376,9 +394,11 @@ class CommandManager extends EventEmitter
       @lastChannel = sender.channel
       @lastSender = sender.channel
       
+      messageModel = (new Message message, [], true, true)
+      
       @handleRaw sender, "text", message, router
-      @handleRaw sender, "message", (new Message message, [], true, true), router
-      @handleText sender, message, router
+      @handleRaw sender, "message", messageModel, router
+      @handleText sender, message, router, false, false, messageModel
       
     textRouter.on "message", (message, sender, router = textRouter)=>
       
@@ -391,7 +411,7 @@ class CommandManager extends EventEmitter
         @handleRaw sender, "text", message.text, router
       
       if message.asCommand
-        @handleText sender, message.text, router
+        @handleText sender, message.text, router, false, false, message
       
     textRouter.on "rpl_join", (channel, sender, router = textRouter)=>
       @handleRaw sender, "join", channel, router
