@@ -1,11 +1,14 @@
 IRouter = require './irouter'
 Senter = require '../senter.js'
 {UTF8LengthSplit} = require '../util.js'
+Q = require 'q'
+imgur = require 'imgur'
 
 class TextRouter extends IRouter
   constructor: ()->
     @maxLength = 350
     super
+
   output : (message, to)->
     if Array.isArray message
       message = message.join "\n"
@@ -26,6 +29,28 @@ class TextRouter extends IRouter
         for item in temp
           @emit "output", item, person
 
+  outputMessage: (message, to)->
+    if message.medias.length > 0
+      Q.all (message.medias.map (i)-> i.getAllFiles())
+      .then (arr_arr_file)->
+        files = [].concat.apply arr_arr_file[0], arr_arr_file[1..]
+        
+        files = files
+        .filter (file)->
+          file.MIME and file.MIME.match /^image/
+        .map (file)->
+          imgur.uploadBase64 file.content.toString 'base64'
+        
+        Q.all files
+      .then (results)=>
+        results.forEach (i)=> 
+          @output i.data.link, to
+      .catch (e)->
+        console.error e.stack || e.message || e.toString()
+      
+    else
+      @output message.text, to
+    
   input : (message, from, to, channal)->
     sender = new Senter from, to, message, channal
     @emit "input", message, sender

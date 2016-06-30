@@ -22,45 +22,12 @@ class TelegramRouter extends TextRouter
     @api.startPolling 40
     @api.getMe (err, res)=>
       return @emit 'error', err if err
-      @setSelfName res.username
+      if @userPostFix
+        @setSelfName res.username + '@' + @userPostFix
+      else
+        @setSelfName res.username
       @_botInfo = res
-      ###
-      @api.on 'message', (message)=>
-        
-        console.log JSON.stringify message, 0, 4
-        
-        channelId = "#" + message.chat.id.toString()
-        
-        if message.from.username
-          @nameMap[message.from.username] = message.from.id
-          
-        if @channelPostFix
-          channelId += "@" + @channelPostFix
-        userName = message.from.username
-        userName = userName || "undefined_#{message.from.id}"
-        if @userPostFix
-          userName += "@" + @channelPostFix
-        text = message.text
-        return if not text
-        
-        clonedRouter = {}
-        
-        for key, value of @
-          clonedRouter[key] = value
-          if 'function' is typeof value
-            if not value.toString().match /\[native code\]/
-              clonedRouter.key = value.bind @
-              
-        message_id = message.message_id
-        message_ = message
-        clonedRouter.output = (message, to)=>
-                
-          channelName = "#" + message_.chat.id.toString()
-          channelName += "@" + @channelPostFix if @channelPostFix
-          @output message, to, message_id, channelName
-        console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + text.replace /\r?\n/g, '\r\n   | '
-        @input text, userName, channelId, [], clonedRouter
-      ###
+      
       @api.on 'message', (message)=>
         channelId = "#" + message.chat.id.toString()
         
@@ -72,7 +39,7 @@ class TelegramRouter extends TextRouter
         userName = message.from.username
         userName = userName || "undefined_#{message.from.id}"
         if @userPostFix
-          userName += "@" + @channelPostFix
+          userName += "@" + @userPostFix
         
         
         clonedRouter = {}
@@ -85,138 +52,16 @@ class TelegramRouter extends TextRouter
               
         message_id = message.message_id
         message_ = message
-        clonedRouter.output = (message, to)=>
+        clonedRouter.output = (message, to, _message_id, originalChannel, nobuffer, textFormat)=>
                 
           channelName = "#" + message_.chat.id.toString()
           channelName += "@" + @channelPostFix if @channelPostFix
-          @output message, to, message_id, channelName
+          
+          _message_id = _message_id or message_id
+          channelName = originalChannel or channelName
+          
+          @output message, to, _message_id, channelName, nobuffer, textFormat
         
-        ###
-        if message.sticker
-          file = new TelegramFile message.sticker.file_id, @api, {
-            MIME: 'image/webp',
-            length: message.sticker.file_size,
-            photoSize: [message.sticker.width, message.sticker.height]
-          }
-          fileThumb = new TelegramFile message.sticker.thumb.file_id, @api, {
-            MIME: 'image/webp',
-            length: message.sticker.thumb.file_size,
-            photoSize: [message.sticker.thumb.width, message.sticker.thumb.height],
-            isThumb: true
-          }
-          fileThumb.meta = {overrides:{MIME: 'image/webp'}}
-          
-          media = new Media {
-            id : "#{message.sticker.file_id}@telegram-sticker",
-            role : 'sticker',
-            placeHolderText : '((sticker))',
-            files: [file, fileThumb]
-          }
-          botMessage = new Message (message.text or '((sticker))'), [media], true, false
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          # console.log botMessage
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-          
-        if message.photo
-          files = message.photo.map (data)=>
-            new TelegramFile data.file_id, @api, {
-              length: data.file_size,
-              photoSize: [data.width, data.height]
-            }
-          files[0].isThumb = true;
-          console.log files
-          
-          media = new Media {
-            id : "#{message.photo[0].file_id}@telegram-photo",
-            role : 'photo',
-            placeHolderText : '((photo))',
-            files: files
-          }
-          botMessage = new Message (message.caption or '((photo))'), [media], true, false, (!!message.caption)
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-          
-        if message.video
-          videoThumb = new TelegramFile message.video.thumb.file_id, @api, {
-            length: message.video.thumb.file_size,
-            photoSize: [message.video.thumb.width, message.video.thumb.height],
-            isThumb: true
-          }
-          video = new TelegramFile message.video.file_id, @api, {
-            length: message.video.file_size,
-            photoSize: [message.video.width, message.video.height],
-            duration: message.video.duration
-          }
-          media = new Media {
-            id : "#{message.video.file_id}@telegram-video",
-            role : 'video',
-            placeHolderText : '((video))',
-            files: [video, videoThumb]
-          }
-          botMessage = new Message (message.caption or '((video))'), [media], true, false, (!!message.caption)
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          
-          # console.log botMessage
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-        
-        if message.audio
-          audio = new TelegramFile message.audio.file_id, @api, {
-            length: message.audio.file_size,
-            duration: message.audio.duration,
-            MIME: message.audio.mime_type
-          }
-          audio.meta = {overrides:{MIME: message.audio.mime_type}}
-          media = new Media {
-            id : "#{message.audio.file_id}@telegram-audio",
-            role : 'audio',
-            placeHolderText : '((audio))',
-            files: [audio],
-            meta : {
-              performer: message.audio.performer
-              title: message.audio.title
-            }
-          }
-          botMessage = new Message (message.text or '((audio))'), [media], true, false
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-        
-        if message.voice
-          voice = new TelegramFile message.voice.file_id, @api, {
-            length: message.voice.file_size,
-            duration: message.voice.duration,
-            MIME: message.voice.mime_type,
-          }
-          voice.meta = {overrides:{MIME: message.voice.mime_type}}
-          media = new Media {
-            id : "#{message.voice.file_id}@telegram-voice",
-            role : 'audio',
-            placeHolderText : '((voice))',
-            files: [voice]
-          }
-          botMessage = new Message (message.text or '((voice))'), [media], true, false
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-        
-        if message.text
-          botMessage = new Message message.text, [], true, true
-          botMessage.meta.time = new Date message.date * 1000
-          botMessage.meta['_' + @getRouterIdentifier()] = message;
-          
-          console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
-          # console.log botMessage
-          
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
-        ###
         botMessage = createBotMessage message, @
         if botMessage
           if message.text
@@ -234,7 +79,7 @@ class TelegramRouter extends TextRouter
           @inputMessage botMessage, userName, channelId, [], clonedRouter
           
         
-      @on 'output', (m, target, replyId)=>
+      @on 'output', (m, target, replyId, textFormat)=>
         console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + @getSelfName() + ' => ' + target + ': ' + m.replace /\r?\n/g, '\r\n   | '
         target = target.replace /@.*$/, ''
         
@@ -248,13 +93,13 @@ class TelegramRouter extends TextRouter
         else
           return console.error "unknown username #{target}"
         
-        
+        sendOptions = {}
+        if textFormat is 'html'
+          sendOptions.parse_mode = 'HTML'
         if replyId
-          @api.sendMessage target, m, null, {
-            reply_to_message_id: replyId
-          }
-        else
-          @api.sendMessage target, m
+          sendOptions.reply_to_message_id = replyId
+        
+        @api.sendMessage target, m, null, sendOptions
       
     @on 'whois', (nick, cb)->
       process.nextTick ()->
@@ -282,7 +127,7 @@ class TelegramRouter extends TextRouter
     sender = new Senter from, to, message, channal
     @emit "message", message, sender, router
   
-  output : (message, to, message_id, originalChannel, nobuffer)->
+  output : (message, to, message_id, originalChannel, nobuffer, textFormat='raw')->
     message_id_temp = message_id
     
     if originalChannel and to isnt originalChannel
@@ -304,11 +149,17 @@ class TelegramRouter extends TextRouter
       return
     
     if ('string' == typeof to) || not to?
-      @emit "output", message, to, message_id_temp
+      @emit "output", message, to, message_id_temp, textFormat
     else
       for person in to
-        @emit "output", message, person, message_id_temp
+        @emit "output", message, person, message_id_temp, textFormat
   
+  outputMessage: (message, to, message_id, originalChannel)->
+    if message.medias.length > 0
+      return TextRouter::outputMessage.call this, arguments...
+    
+    @output message.text, to, message_id, originalChannel, true, message.textFormat
+    
   flushOutput: ()->
     @bufferTimeoutId = null
     for key, value of @messageBuffer
@@ -324,8 +175,22 @@ class TelegramRouter extends TextRouter
       @output value, channel, id, null, true
     @messageBuffer = {}
   
-  toDisplayName: (str)-> "@#{str.replace /@.*/, ''}"
-
+  toDisplayName: (str)-> 
+    if str.match /^@/
+      str
+    else
+      "@#{str.replace /@.*/, ''}"
+  
+  fromDisplayName: (str)->
+    if not str.match /^@/
+      return str
+    
+    str = str.replace /^@/, ''
+    if @userPostFix
+      str + '@' + @userPostFix
+    else
+      str
+  
   isCommand: (str, sender)->
     
     if (not str.match /^\//) or ((str.match /@/) and not (str.match new RegExp "@#{@_botInfo.username}($|[\\r\\n\\s])"))

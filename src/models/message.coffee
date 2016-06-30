@@ -3,6 +3,7 @@ class Message
   constructor: (@text = null, @medias, @asText = false, @asCommand = false, @asContentText = true) ->
     @replyTo = null;
     @forwardFrom = null;
+    @textFormat = "irc"
     
     @medias = @medias or []
     @meta = {}

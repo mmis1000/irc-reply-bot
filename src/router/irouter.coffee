@@ -5,7 +5,9 @@ class IRouter extends Defer
     @maxLength = 350
   
   output : (message, to)->
-
+  
+  outputMessage: (message, to)->
+  
   input : (message, from, to, channal)->
     
   inputMessage : (message, from, to, channal)->
@@ -35,6 +37,8 @@ class IRouter extends Defer
   getRouterIdentifier : ()->
     
   toDisplayName: (str)-> str.replace /@.*/, ''
+  
+  fromDisplayName: (str)-> str
   
   isCommand: null
   
