@@ -344,13 +344,17 @@ class CommandManager extends EventEmitter
   _commandDeop: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2
       return false
+      
+    removeOp = textRouter.fromDisplayName args[1]
+    
     ops = @storage.get "ops", @defaultOps
-    index = ops.indexOf args[1]
+    
+    index = ops.indexOf removeOp
     if 0 > index
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{args[1]} is not op"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "#{removeOp} is not op"
     else
       ops.splice index, 1
-      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "deoped #{args[1]}"
+      commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "deoped #{removeOp}"
     @storage.set "ops", ops
     return true
 
