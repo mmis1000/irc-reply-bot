@@ -156,7 +156,21 @@ class TelegramRouter extends TextRouter
   
   outputMessage: (message, to, message_id, originalChannel)->
     if message.medias.length > 0
-      return TextRouter::outputMessage.call this, arguments...
+      if not message.meta["_#{@getRouterIdentifier()}"]
+        return TextRouter::outputMessage.call this, arguments...
+      else
+        originalInfo = message.meta["_#{@getRouterIdentifier()}"]
+        if originalInfo.sticker
+          @api.sendSticker originalInfo.chat.id, originalInfo.sticker.file_id
+        else if originalInfo.photo
+          @api.sendPhoto originalInfo.chat.id, originalInfo.photo[originalInfo.photo.length - 1].file_id
+        else if originalInfo.audio
+          @api.sendAudio originalInfo.chat.id, originalInfo.audio.file_id
+        else if originalInfo.video
+          @api.sendVideo originalInfo.chat.id, originalInfo.video.file_id
+        else
+          TextRouter::outputMessage.call this, arguments...
+        return
     
     @output message.text, to, message_id, originalChannel, true, message.textFormat
     
@@ -215,6 +229,11 @@ createBotMessage = (message, telegramRouter)->
   
   if message.text
     botMessage = new Message message.text, [], true, true
+    
+    botMessage.textFormat = 'html'
+    botMessage.textFormated = TelegramText.toHTML message.text, message.entities
+    console.log botMessage.textFormated
+    
     botMessage.meta.time = new Date message.date * 1000
     botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
     
@@ -354,5 +373,118 @@ createSenderFromUser = (user, telegramRouter)->
 
   sender = new Senter userName, channelId, null, []
   sender
+
+class TelegramText
+  @toHTML: (text, entities)->
+    chars = text.split ''
+    
+    # remove special entities
+    chars = chars.map (i)->
+      switch i
+        when '&' then '&amp;'
+        when '<' then '&lt;'
+        when '>' then '&gt;'
+        when '"' then '&quot;'
+        when '\n' then '<br/>'
+        else i
+    
+    offset = 0
+    
+    if not entities
+      return chars.join ''
+    
+    for entity in entities
+      switch entity.type
+          
+        when 'code'
+          realOffset = offset + entity.offset
+          chars.splice realOffset, 0, '<code>'
+          chars.splice realOffset + entity.length + 1, 0, '</code>'
+          offset += 2
+          
+        when 'bold'
+          realOffset = offset + entity.offset
+          chars.splice realOffset, 0, '<b>'
+          chars.splice realOffset + entity.length + 1, 0, '</b>'
+          offset += 2
+        
+        when 'italic'
+          realOffset = offset + entity.offset
+          chars.splice realOffset, 0, '<i>'
+          chars.splice realOffset + entity.length + 1, 0, '</i>'
+          offset += 2
+           
+        when 'pre'
+          realOffset = offset + entity.offset
+          
+          for i in [realOffset..realOffset + entity.length - 1]
+            if chars[i] is '<br/>'
+              chars[i] = '\n'
+            
+          chars.splice realOffset, 0, '<pre>'
+          chars.splice realOffset + entity.length + 1, 0, '</pre>'
+          offset += 2
+        
+        when 'mention'
+          realOffset = offset + entity.offset
+          
+          name = chars.slice realOffset + 1, realOffset + entity.length
+          .join ''
+          
+          url = "https://telegram.me/#{encodeURIComponent name}"
+          chars.splice realOffset, 0, "
+            <a 
+              href=\"#{url}\"
+              data-tg-type=\"mention\"
+            >"
+          chars.splice realOffset + entity.length + 1, 0, '</a>'
+          offset += 2
+        
+        when 'text_mention'
+          realOffset = offset + entity.offset
+          
+          name = chars.slice realOffset, realOffset + entity.length
+          .join ''
+          
+          if entity.user.username
+            url = "https://telegram.me/#{encodeURIComponent entity.user.username}"
+          else
+            url = "#"
+            
+          chars.splice realOffset, 0, "
+            <a 
+              href=\"#{url}\"
+              data-tg-type=\"text_mention\"
+              data-tg-id=\"#{entity.user.id}\"
+              data-tg-first_name=\"#{entity.user.first_name or ''}\"
+              data-tg-last_name=\"#{entity.user.last_name or ''}\"
+            >"
+          chars.splice realOffset + entity.length + 1, 0, '</a>'
+          offset += 2
+        
+        when 'url', 'email', 'text_link', 'hashtag', 'bot_command'
+          realOffset = offset + entity.offset
+          
+          if entity.type in ['url', 'text_link', 'email']
+            url = chars.slice realOffset, realOffset + entity.length
+            .join ''
+          else
+            url = '#'
+            
+          if entity.type is 'email'
+            url = 'mailto://' + url
+            
+          url = entity.url or url
+          
+          chars.splice realOffset, 0, "
+            <a 
+              href=\"#{url}\"
+              data-tg-type=\"#{entity.type}\"
+            >"
+          chars.splice realOffset + entity.length + 1, 0, '</a>'
+          offset += 2
+          
+        
+    chars.join ''
 
 module.exports = TelegramRouter
