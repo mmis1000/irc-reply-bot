@@ -205,7 +205,7 @@ class TelegramRouter extends TextRouter
     else
       str
   
-  isCommand: (str, sender)->
+  isCommand: (str, sender, manager)->
     
     if (not str.match /^\//) or ((str.match /@/) and not (str.match new RegExp "@#{@_botInfo.username}($|[\\r\\n\\s])"))
       return false
@@ -223,7 +223,11 @@ class TelegramRouter extends TextRouter
       else
         return true
     else
-      true
+      args = @parseArgs str
+      if manager.hasCommand args[0]
+        true
+      else
+        false
 
 createBotMessage = (message, telegramRouter)->
   
@@ -233,10 +237,6 @@ createBotMessage = (message, telegramRouter)->
     botMessage.textFormat = 'html'
     botMessage.textFormated = TelegramText.toHTML message.text, message.entities
     console.log botMessage.textFormated
-    
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
-    
   
   if message.sticker
     file = new TelegramFile message.sticker.file_id, telegramRouter.api, {
@@ -259,8 +259,7 @@ createBotMessage = (message, telegramRouter)->
       files: [file, fileThumb]
     }
     botMessage = new Message (message.text or '((sticker))'), [media], true, false
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+  
   if message.photo
     files = message.photo.map (data)=>
       new TelegramFile data.file_id, telegramRouter.api, {
@@ -277,8 +276,6 @@ createBotMessage = (message, telegramRouter)->
       files: files
     }
     botMessage = new Message (message.caption or '((photo))'), [media], true, false, (!!message.caption)
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
     
   if message.video
     videoThumb = new TelegramFile message.video.thumb.file_id, telegramRouter.api, {
@@ -298,8 +295,6 @@ createBotMessage = (message, telegramRouter)->
       files: [video, videoThumb]
     }
     botMessage = new Message (message.caption or '((video))'), [media], true, false, (!!message.caption)
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
   
   if message.audio
     audio = new TelegramFile message.audio.file_id, telegramRouter.api, {
@@ -319,8 +314,6 @@ createBotMessage = (message, telegramRouter)->
       }
     }
     botMessage = new Message (message.text or '((audio))'), [media], true, false
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
   
   if message.voice
     voice = new TelegramFile message.voice.file_id, telegramRouter.api, {
@@ -336,10 +329,11 @@ createBotMessage = (message, telegramRouter)->
       files: [voice]
     }
     botMessage = new Message (message.text or '((voice))'), [media], true, false
-    botMessage.meta.time = new Date message.date * 1000
-    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
   
   if botMessage
+    botMessage.meta.time = new Date message.date * 1000
+    botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
+    
     if telegramRouter.channelPostFix
       botMessage.meta.message_id = message.message_id + '@' + telegramRouter.channelPostFix
     else

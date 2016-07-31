@@ -142,7 +142,7 @@ class CommandManager extends EventEmitter
     if not textRouter.isCommand
       result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
     else
-      result.isCommand = isCommand || textRouter.isCommand text, sender
+      result.isCommand = isCommand || textRouter.isCommand text, sender, @
     
     result.sender = sender
     result.text = text
@@ -444,5 +444,14 @@ class CommandManager extends EventEmitter
       return '' + sender
     
     router.toDisplayName sender
+  
+  hasCommand: (command)->
+    if !command.match @commandFormat
+      return false
+    if (@commands.indexOf command) >= 0
+      return true
+    if @aliasMap[command]
+      return true
+    false
     
 module.exports = CommandManager
