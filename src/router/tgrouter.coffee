@@ -213,8 +213,12 @@ class TelegramRouter extends TextRouter
     temp = str.replace /^\//, ''
     .split /\u0020/g
     
+    args = @parseArgs str
+    
+    if not manager.hasCommand args[0]
+      return false
+    
     if @requireTag
-      
       if sender.target.match /#[^-]/
         return true
       
@@ -223,11 +227,7 @@ class TelegramRouter extends TextRouter
       else
         return true
     else
-      args = @parseArgs str
-      if manager.hasCommand args[0]
-        true
-      else
-        false
+      true
 
 createBotMessage = (message, telegramRouter)->
   
