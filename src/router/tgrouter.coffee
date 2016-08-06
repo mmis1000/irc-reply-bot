@@ -258,7 +258,7 @@ createBotMessage = (message, telegramRouter)->
       placeHolderText : '((sticker))',
       files: [file, fileThumb]
     }
-    botMessage = new Message (message.text or '((sticker))'), [media], true, false
+    botMessage = new Message (message.text or "((tg-sticker:#{message.sticker.file_id}))"), [media], true, false
   
   if message.photo
     files = message.photo.map (data)=>
@@ -275,7 +275,7 @@ createBotMessage = (message, telegramRouter)->
       placeHolderText : '((photo))',
       files: files
     }
-    botMessage = new Message (message.caption or '((photo))'), [media], true, false, (!!message.caption)
+    botMessage = new Message (message.caption or "((tg-photo:#{message.photo[0].file_id}))"), [media], true, false, (!!message.caption)
     
   if message.video
     videoThumb = new TelegramFile message.video.thumb.file_id, telegramRouter.api, {
@@ -294,7 +294,7 @@ createBotMessage = (message, telegramRouter)->
       placeHolderText : '((video))',
       files: [video, videoThumb]
     }
-    botMessage = new Message (message.caption or '((video))'), [media], true, false, (!!message.caption)
+    botMessage = new Message (message.caption or "((tg-video:#{message.video.file_id}))"), [media], true, false, (!!message.caption)
   
   if message.audio
     audio = new TelegramFile message.audio.file_id, telegramRouter.api, {
@@ -313,7 +313,7 @@ createBotMessage = (message, telegramRouter)->
         title: message.audio.title
       }
     }
-    botMessage = new Message (message.text or '((audio))'), [media], true, false
+    botMessage = new Message (message.text or "((tg-audio:#{message.audio.file_id}))"), [media], true, false
   
   if message.voice
     voice = new TelegramFile message.voice.file_id, telegramRouter.api, {
@@ -328,7 +328,7 @@ createBotMessage = (message, telegramRouter)->
       placeHolderText : '((voice))',
       files: [voice]
     }
-    botMessage = new Message (message.text or '((voice))'), [media], true, false
+    botMessage = new Message (message.text or "((tg-voice:#{message.voice.file_id}))"), [media], true, false
   
   if botMessage
     botMessage.meta.time = new Date message.date * 1000

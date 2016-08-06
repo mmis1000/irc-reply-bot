@@ -414,8 +414,9 @@ class CommandManager extends EventEmitter
       if message.asText
         @handleRaw sender, "text", message.text, router
       
-      if message.asCommand
-        @handleText sender, message.text, router, false, false, message
+      # for binding to detect stickers or other...
+      # if message.asCommand
+      @handleText sender, message.text, router, false, false, message
       
     textRouter.on "rpl_join", (channel, sender, router = textRouter)=>
       @handleRaw sender, "join", channel, router
