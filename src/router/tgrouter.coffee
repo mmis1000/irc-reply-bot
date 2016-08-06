@@ -462,6 +462,8 @@ class TelegramText
           if entity.type in ['url', 'text_link', 'email']
             url = chars.slice realOffset, realOffset + entity.length
             .join ''
+            if (not (url.match /^https?:\/\//) ) and (entity.type in ['url', 'text_link'])
+              url = 'http://' + url
           else
             url = '#'
             

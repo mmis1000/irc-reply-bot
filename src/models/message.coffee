@@ -4,10 +4,11 @@ class Message
     @replyTo = null;
     @forwardFrom = null;
     
+    # v2 format for multi plaform support
     @textFormat = "irc"
     @textFormated = @text
-    # for new api
     
+    # for new api
     @medias = @medias or []
     @meta = {}
     

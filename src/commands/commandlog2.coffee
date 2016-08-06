@@ -256,16 +256,30 @@ class CommandLogs extends Icommand
         
         return false if args[0] is "log"
         
-        message = new @Message {
-          from : sender.sender
-          to : sender.target
-          message : content.text
-          isOnChannel : onChannel
-          time : date
-          medias: []
-          meta: content.meta
-        }
-      
+        # message format v2
+        if content.textFormated and content.textFormat
+          message = new @Message {
+            from : sender.sender
+            to : sender.target
+            message : content.text
+            messageFormat : content.textFormat
+            messageFormated : content.textFormated
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.meta
+          }
+        else
+          message = new @Message {
+            from : sender.sender
+            to : sender.target
+            message : content.text
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.meta
+          }
+          
       else if content.medias.length > 0
         if !@gfs
           mongoose.connection.once 'open', ()=>

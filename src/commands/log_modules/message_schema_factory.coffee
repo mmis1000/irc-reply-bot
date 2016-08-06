@@ -6,9 +6,14 @@ getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", c
     from : String
     to : String
     message : String
+    
+    # v2 message format
     messageFormat: String
+    messageFormated: String
+    
     # optional, for conflict check
-    messageId : String
+    messageId : { type : String, index : true }
+    
     isOnChannel : Boolean
     medias: [{ type: String, ref: mediaCollectionName }]
     time : { type : Date, index : true }
