@@ -104,6 +104,10 @@ var config = {
     var CommandUpsideDown = require('./lib/commands/commandupsidedown.js');
     commandManager.register ("upsidedown", new CommandUpsideDown(), ['upd']);
     
+    // potential memeroy and cpu usage spam
+    // var CommandMath = require('./lib/commands/commandmath.js');
+    // commandManager.register ("calc", new CommandMath(), ['math', 'c']);
+    
     
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')
