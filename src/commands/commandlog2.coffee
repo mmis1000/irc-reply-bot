@@ -244,7 +244,7 @@ class CommandLogs extends Icommand
     return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    return false  if not (type in ["message", "output"])
+    return false  if not (type in ["message", "outputMessage"])
     
     if type is "message"
     
@@ -279,71 +279,24 @@ class CommandLogs extends Icommand
             medias: []
             meta: content.meta
           }
-          
       else if content.medias.length > 0
         if !@gfs
+          mongoose.connectionemitter.setMaxListeners Infinity
           mongoose.connection.once 'open', ()=>
             @handleRaw sender, type, content, textRouter, commandManager
           return
-        
+        @_saveMediaMessage sender.sender, sender.target, content
+        ###
         (Q.all (content.medias.map (media)=>
           return media.getAllFiles())
         ).then (files)=>
           flattenFiles = [].concat.apply([], files);
           return flattenFiles.map (file)=>
             @_saveFile file
-            ###
-            writestream = @gfs.createWriteStream {
-              filename: file.UID
-              content_type: file.MIME
-              root: @gridFSCollectionName
-            }
-            console.log {
-              filename: file.UID
-              content_type: file.MIME
-              root: @gridFSCollectionName
-            }
-            stream = require 'stream'
-            bufferStream = new stream.PassThrough()
-            bufferStream.end new Buffer file.content
-            bufferStream.pipe writestream
-            
-            writestream.on 'close', ()->
-              console.log "file: #{file.UID} was writed to db"
-            
-            query = @File.findOneAndUpdate {
-              _id: file.UID
-            }, {
-              _id: file.UID
-              MIME: file.MIME
-              length: file.length
-              photoSize: file.photoSize
-              isThumb: file.isThumb
-              contentSource: 'db'
-              contentSrc: file.UID
-            }, {
-              upsert: true
-            }
-            query.exec()
-            ###
         .then ()=>
           console.log "all file infos was saved to db"
           Q.all content.medias.map (media)=>
             @_saveMedia media
-            ###
-            query = @Media.findOneAndUpdate {
-              _id: media.id
-            }, {
-              _id: media.id
-              files: (media.files.map (i)-> i.UID)
-              role: media.role
-              placeHolderText: media.placeHolderText
-              meta: media.meta
-            }, {
-              upsert: true
-            }
-            query.exec()
-            ###
         .then ()=>
           console.log "all media infos was saved to db"
           mongoMessage = new @Message {
@@ -361,14 +314,46 @@ class CommandLogs extends Icommand
           console.log "message was saved to db"
         .catch (err)->
           console.error err.stack
+        ###
         return
       else
         # should never goto here, if it is, it is a bug
         return
-    if type is "output"
+    if type is "outputMessage"
       
       onChannel = 0 is content.target.search /#/
       
+      if content.message.asText && content.message.medias.length is 0
+        args = commandManager.parseArgs content.message.text
+        return false if args[0] is "log"
+      
+        # message format v2
+        if content.message.textFormated and content.message.textFormat
+          message = new @Message {
+            from : textRouter.getSelfName()
+            to : content.target
+            message : content.message.text
+            messageFormat : content.message.textFormat
+            messageFormated : content.message.textFormated
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.message.meta
+          }
+        else
+          message = new @Message {
+            from : textRouter.getSelfName()
+            to : content.target
+            message : content.message.text
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.message.meta
+          }
+      else
+        @_saveMediaMessage textRouter.getSelfName(), content.target, content.message
+        return
+      ###
       message = new @Message {
         from : textRouter.getSelfName()
         to : content.target
@@ -376,7 +361,7 @@ class CommandLogs extends Icommand
         isOnChannel : onChannel
         time : new Date
       }
-    
+      ###
     message.save (err, remoteMessage)=>
       if err?
         return console.error "error during save message: #{err.toString()}"
@@ -461,5 +446,36 @@ class CommandLogs extends Icommand
       defered.reject err
 
     defered.promise
+  
+  _saveMediaMessage: (from, to, message)->
+    date = message.meta.time or new Date
+    onChannel = 0 is to.search /#/
     
+    (Q.all (message.medias.map (media)=>
+      return media.getAllFiles())
+    ).then (files)=>
+      flattenFiles = [].concat.apply([], files);
+      return flattenFiles.map (file)=>
+        @_saveFile file
+    .then ()=>
+      console.log "all file infos was saved to db"
+      Q.all message.medias.map (media)=>
+        @_saveMedia media
+    .then ()=>
+      console.log "all media infos was saved to db"
+      mongoMessage = new @Message {
+        from : from
+        to : to
+        message : message.text
+        isOnChannel : onChannel
+        time : date
+        medias: (message.medias.map (i)-> i.id)
+        meta: message.meta
+      }
+      mongoMessage.save()
+    .then (message)=>
+      @triggerDbUpdate message
+      console.log "message was saved to db"
+    .catch (err)->
+      console.error err.stack
 module.exports = CommandLogs
