@@ -16,7 +16,7 @@ class CommandMath extends Icommand
       result = math.eval message
     catch err
       commandManager.send sender, textRouter, err.message or err.toString()
-    if result
+    if result?
       commandManager.send sender, textRouter, "result of #{message} is  #{result}"
     
     return true
