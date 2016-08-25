@@ -1,4 +1,5 @@
 {EventEmitter} = require 'events'
+Q = require 'q'
 
 uuid = ->
 
@@ -32,6 +33,9 @@ class Defer extends EventEmitter
     @tasklist = []
     @results = []
     @errors = []
+    
+    @_defered = Q.defer()
+    @promise = @_defered.promise
     
     @timeout = -1 # no timeout default
     
@@ -125,8 +129,16 @@ class Defer extends EventEmitter
         return
       
       if @hasError()
+        @_defered.reject {
+          error: @getErrors(),
+          result: @getResults()
+        }
         @emit 'clear', @getErrors(), @getResults()
       else
+        @_defered.resolve {
+          error: null,
+          result: @getResults()
+        }
         @emit 'clear', null, @getResults()
       
       @dropErrors()

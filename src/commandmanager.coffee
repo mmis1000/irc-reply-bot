@@ -243,6 +243,10 @@ class CommandManager extends EventEmitter
     textRouter.output(message, target)
   
   send: (sender, router, text)->
+    message = new Message text, [], true, true, true
+    @sendMessage sender, router, message
+    
+    ###
     if 0 == sender.target.search /^#/
       target = sender.target
     else
@@ -254,41 +258,69 @@ class CommandManager extends EventEmitter
     }, router
     
     @_sendToPlace router, sender.sender, sender.target, sender.channel, text
+    ###
     
   sendPv: (sender, router, text)->
-    
+    message = new Message text, [], true, true, true
+    @sendMessage sender, router, message, sender.sender
+    ###
     @handleRaw sender, 'output', {
       message: text,
       target: sender.sender
     }, router
     
     router.output text, sender.sender
-  
+    ###
   sendChannel: (sender, router, text)->
+    
+    message = new Message text, [], true, true, true
+    
     if not Array.isArray sender.channel
       targets = [sender.channel]
     else
       targets = sender.channel
+    
     for target in targets
+      @sendMessage sender, router, message, target
+      ###
       @handleRaw sender, 'output', {
         message: text,
         target: target
       }, router
-      
+      ###
+    ###
     router.output text, sender.channel
-
-  sendMessage: (sender, router, message)->
-    if 0 == sender.target.search /^#/
-      target = sender.target
-    else
-      target = sender.sender
+    ###
+  sendMessage: (sender, router, message, target)->
+    if not target
+      if 0 == sender.target.search /^#/
+        target = sender.target
+      else
+        target = sender.sender
     
+    res = router.outputMessage message, target
+    
+    if res? and 'function' is typeof res.then
+      res
+      .then (temp)=>
+        @emitMessageEvent sender, temp.message, temp.target, router
+      .catch (err)=>
+        console.error (err.message or err.stack or err)
+      return
+    else if res is true or 'boolean' isnt typeof res
+      @emitMessageEvent sender, message, target, router
+    else
+      console.error 'fail to send message from ' + sender.sender + ' to ' + target
+      
+  emitMessageEvent: (sender, message, target, router)->
     @handleRaw sender, 'outputMessage', {
       message: message,
       target: target
     }, router
-    
-    router.outputMessage message, target
+    @handleRaw sender, 'output', {
+      message: message.text,
+      target: target
+    }, router
   
   parseArgs: (text)->
     if @currentRouter.parseArgs

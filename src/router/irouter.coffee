@@ -2,6 +2,7 @@ Defer = require '../defer'
 
 class IRouter extends Defer
   constructor: ()->
+    super
     @maxLength = 350
   
   output : (message, to)->

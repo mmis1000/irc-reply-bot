@@ -28,7 +28,8 @@ class TextRouter extends IRouter
       for person in to
         for item in temp
           @emit "output", item, person
-
+    true
+    
   outputMessage: (message, to)->
     if message.medias.length > 0
       Q.all (message.medias.map (i)-> i.getAllFiles())
@@ -43,11 +44,8 @@ class TextRouter extends IRouter
         
         Q.all files
       .then (results)=>
-        results.forEach (i)=> 
+        Q.all results.map (i)=> 
           @output i.data.link, to
-      .catch (e)->
-        console.error e.stack || e.message || e.toString()
-      
     else
       @output message.text, to
     

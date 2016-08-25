@@ -161,16 +161,26 @@ class TelegramRouter extends TextRouter
       else
         originalInfo = message.meta["_#{@getRouterIdentifier()}"]
         if originalInfo.sticker
-          @api.sendSticker originalInfo.chat.id, originalInfo.sticker.file_id
+          promise = @api.sendSticker originalInfo.chat.id, originalInfo.sticker.file_id
         else if originalInfo.photo
-          @api.sendPhoto originalInfo.chat.id, originalInfo.photo[originalInfo.photo.length - 1].file_id
+          promise = @api.sendPhoto originalInfo.chat.id, originalInfo.photo[originalInfo.photo.length - 1].file_id
         else if originalInfo.audio
-          @api.sendAudio originalInfo.chat.id, originalInfo.audio.file_id
+          promise = @api.sendAudio originalInfo.chat.id, originalInfo.audio.file_id
         else if originalInfo.video
-          @api.sendVideo originalInfo.chat.id, originalInfo.video.file_id
+          promise = @api.sendVideo originalInfo.chat.id, originalInfo.video.file_id
+        
+        if promise
+          return promise.then (res)=>
+            new_message = createBotMessage res, @
+            new_target = "##{res.chat.id}"
+            if @channelPostFix
+              new_target = new_target + "@" + @channelPostFix
+            return {
+              message: new_message,
+              target: new_target
+            }
         else
-          TextRouter::outputMessage.call this, arguments...
-        return
+          return TextRouter::outputMessage.call this, arguments...
     
     @output message.text, to, message_id, originalChannel, true, message.textFormat
     
