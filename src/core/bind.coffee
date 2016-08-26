@@ -1,6 +1,7 @@
 Imodule = require '../imodule.js'
 BindHelper = require './bindhelper'
 helper = new BindHelper
+Q = require 'q'
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 
@@ -8,26 +9,38 @@ class Bind extends Imodule
   constructor: ()->
     super
     @name = 'bind'
-  handleRaw: (sender, type, content, textRouter, commandManager)->
+  handleRaw: (sender, type, content, textRouter, commandManager, event)->
     if type == 'init'
       @storage = commandManager.getStorage()
       @manager = commandManager
       @_init()
     if type == 'before_iscommand'
       return if content.isCommand # don't try to parse already parsed command
+      return if content.fromBinding  # don't reparse parsed command
       return if @_isIgnored sender
-      result = @_getBinding content.text, commandManager, sender, textRouter
-      if result != false 
-        content.text = result
-        content.isCommand = true
-        content.fromBinding = true
-    
-    return true
-  
+      event.cancelled = @_getBinding content.text, commandManager, sender, textRouter
+      .then (result)->
+        if result != false 
+          content.text = result
+          content.isCommand = true
+          content.fromBinding = true
+          event.cancelled = false
+        false
+      .then ((i)->i), (err)->
+        console.error err.stack or err.toString()
+        throw err
+    null
+
   _getBinding: (original, commandManager, sender, router)->
     result = false 
-    if (original.search escapeRegex commandManager.identifier) != 0
+    isCommand = null
+    if router.isCommand?
+      isCommand = router.isCommand original, sender, commandManager
+    else
+      isCommand = (original.search escapeRegex commandManager.identifier) == 0
+    if not isCommand
       #handle keywords or none command here
+      ###
       for keyword in @keywords
         newKeyword = helper.compileText keyword, sender, commandManager, router
         try
@@ -38,8 +51,26 @@ class Bind extends Imodule
             break
         catch e
           console.log e
-    
-    return text || false
+      ###
+      textPromise = Q.all @keywords.map (keyword)=>
+        regex = null
+        helper.compileText keyword, sender, commandManager, router
+        .then (newKeyword)=>
+          if (original.search newKeyword) >= 0
+            regex = new RegExp newKeyword
+          else
+            throw new Error 'not match'
+          helper.compileText @keywordMap[keyword], sender, commandManager, router
+        .then (replace)->
+          (regex.exec original)[0].replace regex, replace
+        .then ((i)->i), (err)->
+          if err.message isnt 'not match'
+            console.error err.stack or err.toString()
+          false
+      .then (results)->
+        results = results.filter (i)-> !!i
+        results[0] || false
+    return textPromise
   
   _getBindingInfos: (original, commandManager, sender, router)->
     results = [] 

@@ -9,9 +9,11 @@
   "main": "./index.js",
   "version": "0.1.0",
   "dependencies": {
+    "co": "^4.6.0",
     "forever": "^0.15.1",
     "google": "^1.4.0",
     "gridfs-stream": "^1.1.1",
+    "grunt-contrib-coffee": "^1.0.0",
     "imgur": "^0.1.6",
     "irc": "~0.3.12",
     "mathjs": "^3.4.1",

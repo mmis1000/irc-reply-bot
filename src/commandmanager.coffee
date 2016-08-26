@@ -3,6 +3,8 @@ Bind = require './core/bind.js'
 Ban = require './core/ban.js'
 Icommand = require './icommand'
 Message = require './models/message'
+co = require 'co'
+
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandManager extends EventEmitter
@@ -130,67 +132,79 @@ class CommandManager extends EventEmitter
     return event
     
   handleText: (sender, text, textRouter, isCommand = false, fromBinding = false, originalMessage = null)->
-    currentIdentifier = @identifier
-    if textRouter.getIdentifier
-      currentIdentifier = textRouter.getIdentifier()
-    
-    @currentRouter = textRouter
-    
-    result = {}
-    commandManager = @
-    
-    if not textRouter.isCommand
-      result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
-    else
-      result.isCommand = isCommand || textRouter.isCommand text, sender, @
-    
-    result.sender = sender
-    result.text = text
-    result.fromBinding = false
-    
-    if ( @handleRaw sender, "before_iscommand", result, textRouter ).cancelled
-     return false
-     
-    text = result.text
-    fromBinding = result.fromBinding
-    
-    if not result.isCommand
-      #it seems it isn't a command, so return at fast as possible
-      return false
-    
-    identifierRegex = escapeRegex @identifier
-    ###
-    if 0 == text.search identifierRegex
-      argsText = text.replace @identifier, ""
-    else
-      argsText = text
-    
-    argsText = argsText.replace /^\s+/g, ""
-    ###
-    args = @parseArgs text
-    
-    command = args[0]
-    
-    if !fromBinding && !command.match @commandFormat
-      return false
-    
-    if (@commands.indexOf command) < 0
-      if @aliasMap[command]
-        command = @aliasMap[command]
+    # hold the router
+    done = textRouter.async()
+    co.call @, ()->
+      currentIdentifier = @identifier
+      if textRouter.getIdentifier
+        currentIdentifier = textRouter.getIdentifier()
+      
+      @currentRouter = textRouter
+      
+      result = {}
+      commandManager = @
+      
+      if not textRouter.isCommand
+        result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
       else
-        # @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, "no such command : #{command} \ntype '#{@identifier} help' for help!"
+        result.isCommand = isCommand || textRouter.isCommand text, sender, @
+      
+      result.sender = sender
+      result.text = text
+      result.fromBinding = fromBinding or false
+      
+      if yield Promise.resolve ( @handleRaw sender, "before_iscommand", result, textRouter ).cancelled
+        done()
         return false
-
-    if ( @handleRaw sender, "before_permission", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
-      return false
-    if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
-      if ( @handleRaw sender, "before_command", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
+       
+      text = result.text
+      fromBinding = result.fromBinding
+      
+      if not result.isCommand
+        #it seems it isn't a command, so return at fast as possible
+        done()
         return false
-      if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding, originalMessage)
-        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{currentIdentifier} #{command}"
-    else
-      @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
-
+      
+      identifierRegex = escapeRegex @identifier
+      ###
+      if 0 == text.search identifierRegex
+        argsText = text.replace @identifier, ""
+      else
+        argsText = text
+      
+      argsText = argsText.replace /^\s+/g, ""
+      ###
+      args = @parseArgs text
+      
+      command = args[0]
+      
+      if !fromBinding && !command.match @commandFormat
+        done()
+        return false
+      
+      if (@commands.indexOf command) < 0
+        if @aliasMap[command]
+          command = @aliasMap[command]
+        else
+          done()
+          return false
+  
+      if ( yield Promise.resolve  @handleRaw sender, "before_permission", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
+        done()
+        return false
+      if @commandMap[command].hasPermission(sender ,text, args, @storage, textRouter, commandManager, fromBinding)
+        if ( yield Promise.resolve  @handleRaw sender, "before_command", [sender ,text, args, @storage, textRouter, commandManager, fromBinding], textRouter ).cancelled
+          done()
+          return false
+        if not @commandMap[command].handle(sender ,text, args, @storage, textRouter, commandManager, fromBinding, originalMessage)
+          @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, @commandMap[command].help "#{currentIdentifier} #{command}"
+        done()
+      else
+        @_sendToPlace textRouter, sender.sender, sender.target, sender.channel, 'Access Denied! You may have to login or this command was not allowed to be exec from keyword binding.'
+        done()
+    .catch (err)->
+      console.error err.stack or err.toString()
+      done()
   register: (keyword, iCommand, aliasList)->
     if not (iCommand instanceof Icommand)
       iCommand = Icommand.__createAsInstance__ iCommand
@@ -246,31 +260,10 @@ class CommandManager extends EventEmitter
     message = new Message text, [], true, true, true
     @sendMessage sender, router, message
     
-    ###
-    if 0 == sender.target.search /^#/
-      target = sender.target
-    else
-      target = sender.sender
-    
-    @handleRaw sender, 'output', {
-      message: text,
-      target: target
-    }, router
-    
-    @_sendToPlace router, sender.sender, sender.target, sender.channel, text
-    ###
-    
   sendPv: (sender, router, text)->
     message = new Message text, [], true, true, true
     @sendMessage sender, router, message, sender.sender
-    ###
-    @handleRaw sender, 'output', {
-      message: text,
-      target: sender.sender
-    }, router
     
-    router.output text, sender.sender
-    ###
   sendChannel: (sender, router, text)->
     
     message = new Message text, [], true, true, true
@@ -282,15 +275,7 @@ class CommandManager extends EventEmitter
     
     for target in targets
       @sendMessage sender, router, message, target
-      ###
-      @handleRaw sender, 'output', {
-        message: text,
-        target: target
-      }, router
-      ###
-    ###
-    router.output text, sender.channel
-    ###
+    
   sendMessage: (sender, router, message, target)->
     if not target
       if 0 == sender.target.search /^#/

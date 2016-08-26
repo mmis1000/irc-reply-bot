@@ -1,5 +1,7 @@
 folderLoader = require '../folderloader'
 path = require 'path'
+PipeRouter = require '../router/piperouter'
+Q = require 'q'
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class BindHelper
@@ -9,6 +11,7 @@ class BindHelper
     @_init()
   
   _init: ()->
+    ###
     temp = folderLoader path.resolve __dirname, 'bind-symbol'
     for item in temp
       if item.module.symbols
@@ -22,7 +25,10 @@ class BindHelper
         for symbol in item.module.symbols
           @filterMap[symbol] = item.module
     #console.log @filterMap
-  
+    ###
+    
+    
+    
   escapeRegex:(str, isOp)->
     temp = str.match /(\\u....|\\x..|\\.|.)/g
     
@@ -72,32 +78,37 @@ class BindHelper
       if item.match /(#\{.*[^\\]\})/
         temp2 = (item.slice 2, -1).match /\\u....|\\x..|\\.|./g
         temp2 = @_splitArray temp2, "|"
-        temp2 = temp2.map (item)->(item.join '').replace /^\s+|\s+$/g, ''
+        temp2 = temp2.map (item)->
+          item
+          .join ''
+          .replace /^\s+|\s+$/g, ''
         
         pairs = []
         
-        for pair in temp2
-          temp3 = (pair.split ',').map (item)->item.replace /^\s+|\s+$/g, ''
-          pairName = temp3[0]
-          args = temp3[1..]
-          #console.log 'pairName: ' + pairName + ' args: ' + args
-          
-          pairs.push [pairName, args]
+        # for pair in temp2
+        pipe = new PipeRouter router
         
-        symbol = pairs[0][0]
-        args = pairs[0][1]
+        manager.handleText sender, temp2[0], pipe, true, true, null
+        pipe.forceCheck()
+          
+        temp[index] = pipe.promise.then (data)-> data.result
+        
+        ###
         try
           output = @symbolMap[symbol].handle sender, str, args, manager, router
-          
           for pair in pairs[1..]
             output = @filterMap[pair[0]].handle sender, output, pair[1..], manager, router
-          
           temp[index] = output
         catch e
           #console.log e
           temp[index] = ""
-    return temp.join ""
-
+        ###
+    return Q
+    .all temp
+    .then (frag)-> frag.join ''
+    .catch (err)->
+      console.log err.stack or err.toString()
+      throw err
   _splitArray: (arr, seperator)->
     temp = []
     i = 0

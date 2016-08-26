@@ -58,7 +58,6 @@ class CommandLogs extends Icommand
     clonedObj.meta = obj.meta
     clonedObj._id = obj._id
     
-    #@MessageChannel.publish('update', {'command' : 'test'});
     @MessageChannel.publish('update', {'data' : clonedObj});
   
   handle: (sender ,text, args, storage, textRouter, commandManager)->
@@ -66,7 +65,8 @@ class CommandLogs extends Icommand
       return false
     
     if args[1] is "find"
-      @_findlog(sender ,text, args, storage, textRouter, commandManager)
+      done = textRouter.async()
+      @_findlog(sender ,text, args, storage, textRouter, commandManager, done)
     else
       false
   ###
@@ -101,7 +101,7 @@ class CommandLogs extends Icommand
       args : args
       flags : flagResult
     }
-  _findlog: (sender ,text, args, storage, textRouter, commandManager)->
+  _findlog: (sender ,text, args, storage, textRouter, commandManager, done)->
     {args, flags} = @_extractFlags args, {
       '-s' : 1
       '-t' : 1
@@ -111,15 +111,22 @@ class CommandLogs extends Icommand
     }
     
     
-    return false if args.length < 2 or args.length > 4
-
-    return false if args[1] isnt 'find'
+    if args.length < 2 or args.length > 4
+      done()
+      return false 
+    if args[1] isnt 'find'
+      done()
+      return false
     
     args[2] = parseInt args[2], 10 if args[2]?
     args[3] = parseInt args[3], 10 if args[3]?
     
-    return false if args[2] and isNaN args[2]
-    return false if args[3] and isNaN args[3]
+    if args[2] and isNaN args[2]
+      done()
+      return false
+    if args[3] and isNaN args[3]
+      done()
+      return false
     
     pageNumber = args[2] || 1
     pageSize = args[3] || @defaultPageShow
@@ -182,25 +189,18 @@ class CommandLogs extends Icommand
           $lt : timeTo
         }
       else
+        done()
         return false
-    
-    
-    ###
-    if flags['-t']?
-      if flags['']
-    ###
     
     query = @Message.find query 
     
     query.count (err, count)=>
       console.log err if err?
-      return if err?
+      if err?
+        done()
+        return
       
       total = count
-      
-      #console.log count
-      #console.log (pageNumber - 1) * pageSize
-      #console.log pageSize
       
       maxPage = Math.ceil total / pageSize
       
@@ -224,7 +224,7 @@ class CommandLogs extends Icommand
           commandManager.sendPv sender, textRouter, message.toString()
         
         commandManager.sendPv sender, textRouter, "Page #{pageNumber} of total #{maxPage} Pages. Time Zone is #{@timezone}"
-    
+        done()
   help: (commandPrefix)->
     return [
       "view recent talks, this command will force send to you instead of channel ",
@@ -281,40 +281,11 @@ class CommandLogs extends Icommand
           }
       else if content.medias.length > 0
         if !@gfs
-          mongoose.connectionemitter.setMaxListeners Infinity
+          mongoose.connection.setMaxListeners Infinity
           mongoose.connection.once 'open', ()=>
             @handleRaw sender, type, content, textRouter, commandManager
           return
         @_saveMediaMessage sender.sender, sender.target, content
-        ###
-        (Q.all (content.medias.map (media)=>
-          return media.getAllFiles())
-        ).then (files)=>
-          flattenFiles = [].concat.apply([], files);
-          return flattenFiles.map (file)=>
-            @_saveFile file
-        .then ()=>
-          console.log "all file infos was saved to db"
-          Q.all content.medias.map (media)=>
-            @_saveMedia media
-        .then ()=>
-          console.log "all media infos was saved to db"
-          mongoMessage = new @Message {
-            from : sender.sender
-            to : sender.target
-            message : content.text
-            isOnChannel : onChannel
-            time : date
-            medias: (content.medias.map (i)-> i.id)
-            meta: content.meta
-          }
-          mongoMessage.save()
-        .then (message)=>
-          @triggerDbUpdate message
-          console.log "message was saved to db"
-        .catch (err)->
-          console.error err.stack
-        ###
         return
       else
         # should never goto here, if it is, it is a bug
@@ -353,19 +324,9 @@ class CommandLogs extends Icommand
       else
         @_saveMediaMessage textRouter.getSelfName(), content.target, content.message
         return
-      ###
-      message = new @Message {
-        from : textRouter.getSelfName()
-        to : content.target
-        message : content.message
-        isOnChannel : onChannel
-        time : new Date
-      }
-      ###
     message.save (err, remoteMessage)=>
       if err?
         return console.error "error during save message: #{err.toString()}"
-      #console.log 'save complete!'
       @triggerDbUpdate message
       null
       
@@ -386,11 +347,13 @@ class CommandLogs extends Icommand
         content_type: file.MIME
         root: @gridFSCollectionName
       }
+      ###
       console.log {
         filename: file.UID
         content_type: file.MIME
         root: @gridFSCollectionName
       }
+      ###
       stream = require 'stream'
       bufferStream = new stream.PassThrough()
       bufferStream.end new Buffer file.content
