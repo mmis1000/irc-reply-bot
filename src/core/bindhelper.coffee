@@ -81,8 +81,17 @@ class BindHelper
         temp2 = temp2.map (item)->
           item
           .join ''
+          .replace /\\u....|\\x..|\\.|./g, (i)->
+            if i[0] is '\\'
+              if i[1] is 'u'
+                String.fromCharCode parseInt i[1..4], 16
+              else if i[1] is 'x'
+                String.fromCharCode parseInt i[1..2], 16
+              else
+                i[1]
+            else
+              i
           .replace /^\s+|\s+$/g, ''
-        
         pairs = []
         
         # for pair in temp2
@@ -110,7 +119,8 @@ class BindHelper
           
         text = replaceText text, envs
         
-        manager.handleText sender, temp2[0], pipe, true, true, null
+        manager.handleText sender, text, pipe, true, true, null
+        
         pipe.forceCheck()
         
         promise = pipe.promise.then (data)-> data.result
