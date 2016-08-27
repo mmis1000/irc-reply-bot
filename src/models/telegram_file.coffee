@@ -16,14 +16,15 @@ class TelegramFile extends BaseFile
     defered.promise.nodeify cb
     @_getFile (err)=>
       if err and retryTimes > 0
-        console.log "Error get file #{@contentSrc}. retry after 5 seconds"
+        console.error "Error get file #{@contentSrc}. retry after 5 seconds"
         return setTimeout ()=>
-          console.log 'retry start'
+          console.error 'retry start'
           @getFile null, retryTimes - 1, defered
         , 5000
       if err
+        console.error "Error get file #{@contentSrc}."
         defered.reject err
-      console.log "File #{@contentSrc} retrieved."
+      # console.log "File #{@contentSrc} retrieved."
       defered.resolve @
       
     defered.promise
@@ -36,7 +37,7 @@ class TelegramFile extends BaseFile
       if err or not res
         return deferred.reject err or new Error 'cannot get content'
       
-      console.log res
+      # console.log res
       @api.getFileContent res.file_path, (err, res, body)=>
         if err or not body
           return deferred.reject err or now Error 'no content found'

@@ -182,7 +182,7 @@ class TelegramRouter extends TextRouter
         else
           return TextRouter::outputMessage.call this, arguments...
     
-    @output message.text, to, message_id, originalChannel, true, message.textFormat
+    @output message.text, to, message_id, originalChannel, false, message.textFormat
     
   flushOutput: ()->
     @bufferTimeoutId = null
@@ -246,7 +246,7 @@ createBotMessage = (message, telegramRouter)->
     
     botMessage.textFormat = 'html'
     botMessage.textFormated = TelegramText.toHTML message.text, message.entities
-    console.log botMessage.textFormated
+    # console.log botMessage.textFormated
   
   if message.sticker
     file = new TelegramFile message.sticker.file_id, telegramRouter.api, {
@@ -277,7 +277,7 @@ createBotMessage = (message, telegramRouter)->
         photoSize: [data.width, data.height]
       }
     files[0].isThumb = true;
-    console.log files
+    # console.log files
     
     media = new Media {
       id : "#{message.photo[0].file_id}@telegram-photo",

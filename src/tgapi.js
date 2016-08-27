@@ -60,7 +60,7 @@ TelegramAPI.prototype.startPolling = function (timeout) {
     this.pollingTimeoutId = setTimeout(checkTimeout, this.pollingTimeout);
     this.currentPollRequest = this._poll(timeout, null, function handle(err, response, body) {
         self.pollCount++;
-        console.log(err, response ? response.statusCode : null, body)
+        // console.log(err, response ? response.statusCode : null, body)
         var i;
         if (err || response.statusCode !== 200) {
             self.lastOffset = null;
