@@ -54,13 +54,15 @@ class Bind extends Imodule
       ###
       textPromise = Q.all @keywords.map (keyword)=>
         regex = null
+        envs = []
         helper.compileText keyword, sender, commandManager, router
         .then (newKeyword)=>
           if (original.search newKeyword) >= 0
             regex = new RegExp newKeyword
           else
             throw new Error 'not match'
-          helper.compileText @keywordMap[keyword], sender, commandManager, router
+          envs = regex.exec original
+          helper.compileText @keywordMap[keyword], sender, commandManager, router, envs
         .then (replace)->
           (regex.exec original)[0].replace regex, replace
         .then ((i)->i), (err)->

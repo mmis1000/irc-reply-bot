@@ -70,7 +70,7 @@ class BindHelper
     
     temp.join ""
     
-  compileText:(str, sender, manager, router)->
+  compileText:(str, sender, manager, router, envs = [])->
     temp = str.split /(#\{.*?[^\\]\})/g
     
     #console.log temp
@@ -88,10 +88,37 @@ class BindHelper
         # for pair in temp2
         pipe = new PipeRouter router
         
+        text = temp2[0]
+        
+        replaceText = (text, envs = [])->
+          if envs.length > 0
+            envs.forEach (env, i)->
+              if i <= 10
+                text = text.replace "$#{i}", env
+          text
+          
+        nextCommand = (promise, next_text)->
+          promise.then (out)->
+            pipe = new PipeRouter router
+            envs = out.split /\s+/g
+            envs = [out, envs...]
+            next_text = replaceText next_text, envs
+            manager.handleText sender, next_text, pipe, true, true, null
+            pipe.forceCheck()
+            pipe.promise
+          .then (data)->data.result
+          
+        text = replaceText text, envs
+        
         manager.handleText sender, temp2[0], pipe, true, true, null
         pipe.forceCheck()
-          
-        temp[index] = pipe.promise.then (data)-> data.result
+        
+        promise = pipe.promise.then (data)-> data.result
+        
+        temp2[1..].forEach (command)->
+          promise = nextCommand promise, command
+        
+        temp[index] = promise
         
         ###
         try
