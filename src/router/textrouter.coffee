@@ -96,9 +96,9 @@ class TextRouter extends IRouter
     @_channels
     
   async: ()-> 
-    console.log "requested async work"
+    # console.log "requested async work"
     ()->
-      console.log "async work finished"
+      # console.log "async work finished"
   addResult: ()->;
   addError: ()->;
   
