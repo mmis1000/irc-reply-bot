@@ -3,6 +3,7 @@ Bind = require './core/bind.js'
 Ban = require './core/ban.js'
 Icommand = require './icommand'
 Message = require './models/message'
+TraceRouter = require './router/tracerouter'
 co = require 'co'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
@@ -397,9 +398,13 @@ class CommandManager extends EventEmitter
       if @isOp info.account, true
         if command
           @login sender.sender
-          #commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "exec as operator #{JSON.stringify [sender, command]}"
-          @handleText sender, command, textRouter, true
-          @logout sender.sender
+          
+          # trace the command status, finish command, then log out
+          trace = new TraceRouter textRouter
+          @handleText sender, command, trace, true
+          trace.forceCheck()
+          trace.promise.finally ()=>
+            @logout sender.sender
         else
           @login sender.sender
           commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "login successfully"
