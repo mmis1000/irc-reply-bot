@@ -68,6 +68,10 @@ class Imodule extends Icommand
     true
   
   getSubHelpMessage: (prefix, command)->
-    @commandMap[command].help prefix
+    temp = @commandMap[command].help prefix
+    if Array.isArray temp
+      temp.join '\r\n'
+    else
+      temp
     
 module.exports = Imodule
