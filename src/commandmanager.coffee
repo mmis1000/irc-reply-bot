@@ -403,8 +403,12 @@ class CommandManager extends EventEmitter
           trace = new TraceRouter textRouter
           @handleText sender, command, trace, true
           trace.forceCheck()
-          trace.promise.finally ()=>
+          trace.promise.then ()=>
             @logout sender.sender
+          .catch (err)->
+            console.error err.stack or err.toString()
+            @logout sender.sender
+            
         else
           @login sender.sender
           commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "login successfully"
