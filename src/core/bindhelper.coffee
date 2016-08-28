@@ -84,9 +84,9 @@ class BindHelper
           .replace /\\u....|\\x..|\\.|./g, (i)->
             if i[0] is '\\'
               if i[1] is 'u'
-                String.fromCharCode parseInt i[1..4], 16
+                String.fromCharCode parseInt i[2..5], 16
               else if i[1] is 'x'
-                String.fromCharCode parseInt i[1..2], 16
+                String.fromCharCode parseInt i[2..3], 16
               else
                 i[1]
             else
