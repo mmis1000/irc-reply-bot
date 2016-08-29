@@ -182,7 +182,7 @@ class TelegramRouter extends TextRouter
         else
           return TextRouter::outputMessage.call this, arguments...
     
-    @output message.text, to, message_id, originalChannel, false, message.textFormat
+    @output message.text, to, message_id, originalChannel, (message.textFormat is 'html'), message.textFormat
     
   flushOutput: ()->
     @bufferTimeoutId = null
