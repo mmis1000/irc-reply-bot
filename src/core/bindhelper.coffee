@@ -112,14 +112,14 @@ class BindHelper
             envs = out.split /\s+/g
             envs = [out, envs...]
             next_text = replaceText next_text, envs
-            manager.handleText sender, next_text, pipe, true, true, null
+            manager.handleText sender, next_text, pipe, {fromBinding: true, isCommand: true}, null
             pipe.forceCheck()
             pipe.promise
           .then (data)->data.result
           
         text = replaceText text, envs
         
-        manager.handleText sender, text, pipe, true, true, null
+        manager.handleText sender, text, pipe, {fromBinding: true, isCommand: true}, null
         
         pipe.forceCheck()
         

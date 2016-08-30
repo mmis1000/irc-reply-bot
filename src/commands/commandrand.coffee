@@ -38,7 +38,7 @@ class CommandRand extends Icommand
     done = textRouter.async()
     
     trace = new TraceRouter textRouter
-    commandManager.handleText sender, commands[chosen], trace, true, fromBinding
+    commandManager.handleText sender, commands[chosen], trace, {fromBinding: fromBinding, isCommand: true}
     trace.forceCheck()
     
     trace.promise.then ()->

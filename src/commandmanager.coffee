@@ -131,8 +131,12 @@ class CommandManager extends EventEmitter
       module.handleRaw sender, type, contents, textRouter, @, event
     
     return event
-    
-  handleText: (sender, text, textRouter, isCommand = false, fromBinding = false, originalMessage = null)->
+  # handleText: (sender, text, textRouter, isCommand = false, fromBinding = false, originalMessage = null)->
+  handleText: (sender, text, textRouter, opts = {}, originalMessage = null)->
+    result = Object.create opts
+    result.isCommand = result.isCommand or false
+    result.fromBinding = result.fromBinding or false
+    result.text = text
     # hold the router
     done = textRouter.async()
     co.call @, ()->
@@ -142,13 +146,12 @@ class CommandManager extends EventEmitter
       
       @currentRouter = textRouter
       
-      result = {}
       commandManager = @
       
       if not textRouter.isCommand
-        result.isCommand = isCommand || ((text.search escapeRegex currentIdentifier) == 0)
+        result.isCommand = result.isCommand or ((text.search escapeRegex currentIdentifier) == 0)
       else
-        result.isCommand = isCommand || textRouter.isCommand text, sender, @
+        result.isCommand = result.isCommand or textRouter.isCommand text, sender, @
       
       result.sender = sender
       result.text = text
@@ -386,7 +389,7 @@ class CommandManager extends EventEmitter
     
     if @isOp sender.sender
       if command
-        @handleText sender, command, textRouter, true, false
+        @handleText sender, command, textRouter, {fromBinding: false, isCommand: true}
       else
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "logout successfully"
         @logout sender.sender
@@ -401,7 +404,7 @@ class CommandManager extends EventEmitter
           
           # trace the command status, finish command, then log out
           trace = new TraceRouter textRouter
-          @handleText sender, command, trace, true
+          @handleText sender, command, trace, {fromBinding: false, isCommand: true}
           trace.forceCheck()
           trace.promise.then ()=>
             @logout sender.sender
@@ -428,7 +431,7 @@ class CommandManager extends EventEmitter
       
       @handleRaw sender, "text", message, router
       @handleRaw sender, "message", messageModel, router
-      @handleText sender, message, router, false, false, messageModel
+      @handleText sender, message, router, {fromBinding: false, isCommand: false}, messageModel
       
     textRouter.on "message", (message, sender, router = textRouter)=>
       
@@ -442,7 +445,7 @@ class CommandManager extends EventEmitter
       
       # for binding to detect stickers or other...
       # if message.asCommand
-      @handleText sender, message.text, router, false, false, message
+      @handleText sender, message.text, router, {fromBinding: false, isCommand: false}, message
       
     textRouter.on "rpl_join", (channel, sender, router = textRouter)=>
       @handleRaw sender, "join", channel, router
