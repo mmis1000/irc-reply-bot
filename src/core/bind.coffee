@@ -2,6 +2,7 @@ Imodule = require '../imodule.js'
 BindHelper = require './bindhelper'
 helper = new BindHelper
 Q = require 'q'
+
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 
@@ -18,6 +19,7 @@ class Bind extends Imodule
       return if content.isCommand # don't try to parse already parsed command
       return if content.fromBinding  # don't reparse parsed command
       return if @_isIgnored sender
+      return if event.cancelled # do nothing if already cacncelled
       event.cancelled = @_getBinding content.text, commandManager, sender, textRouter
       .then (result)->
         if result != false 
