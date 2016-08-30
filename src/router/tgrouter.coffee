@@ -28,6 +28,9 @@ class TelegramRouter extends TextRouter
         @setSelfName res.username
       @_botInfo = res
       
+      @api.on 'error', (err)->
+        console.error err.stack or err.toString()
+      
       @api.on 'message', (message)=>
         channelId = "#" + message.chat.id.toString()
         
