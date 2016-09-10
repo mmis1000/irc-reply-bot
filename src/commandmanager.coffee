@@ -13,8 +13,8 @@ class CommandManager extends EventEmitter
     @identifier = "!"
     @commandFormat = /^.*$/g
     @keywordPrefix = "^"
-    #these command is deeply hook into runtime thus cannot be implement seperately
-    @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
+    # these command is deeply hook into runtime thus cannot be implement seperately
+    # @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
     
     @sessionLength = 10 * 60 * 1000
     @sessionExpire = {}
@@ -91,7 +91,6 @@ class CommandManager extends EventEmitter
       handleRaw: (sender, type, content)->return false
     
     @register 'sudo', sudoCommand, []
-    
     
     @load new Bind
     @load new Ban
@@ -178,7 +177,7 @@ class CommandManager extends EventEmitter
       
       argsText = argsText.replace /^\s+/g, ""
       ###
-      args = @parseArgs text
+      args = opts.args or @parseArgs text
       
       command = args[0]
       
@@ -243,16 +242,28 @@ class CommandManager extends EventEmitter
       delete @sessionExpire[name]
     
     return authed
-
+  
+  ###
+   * @method
+   * private
+  ###
   login: (name, once)->
     if once
       @sessionExpire[name] = -1
     else
       @sessionExpire[name] = Date.now() + @sessionLength
 
+  ###
+   * @method
+   * private
+  ###
   logout: (name, once)->
     delete @sessionExpire[name]
 
+  ###
+   * @method
+   * @deprecated
+  ###
   _sendToPlace: (textRouter, from, to, channel, message)->
     if 0 == to.search /^#/
       target = to
@@ -301,6 +312,10 @@ class CommandManager extends EventEmitter
     else
       console.error 'fail to send message from ' + sender.sender + ' to ' + target
       
+  ###
+   * @method
+   * @private
+  ###
   emitMessageEvent: (sender, message, target, router)->
     @handleRaw sender, 'outputMessage', {
       message: message,
@@ -389,7 +404,7 @@ class CommandManager extends EventEmitter
     
     if @isOp sender.sender
       if command
-        @handleText sender, command, textRouter, {fromBinding: false, isCommand: true}
+        @handleText sender, command, textRouter, {fromBinding: false, isCommand: true, args: args[1..]}
       else
         commandManager._sendToPlace textRouter, sender.sender, sender.target, sender.channel, "logout successfully"
         @logout sender.sender
@@ -404,7 +419,7 @@ class CommandManager extends EventEmitter
           
           # trace the command status, finish command, then log out
           trace = new TraceRouter textRouter
-          @handleText sender, command, trace, {fromBinding: false, isCommand: true}
+          @handleText sender, command, trace, {fromBinding: false, isCommand: true, args: args[1..]}
           trace.forceCheck()
           trace.promise.then ()=>
             @logout sender.sender
