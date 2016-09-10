@@ -18,14 +18,14 @@ class BindHelper
         for symbol in item.module.symbols
           @symbolMap[symbol] = item.module
     #console.log @symbolMap
-    
+    ###
+
     temp = folderLoader path.resolve __dirname, 'bind-filter'
     for item in temp
       if item.module.symbols
         for symbol in item.module.symbols
           @filterMap[symbol] = item.module
     #console.log @filterMap
-    ###
     
     
     
@@ -106,16 +106,25 @@ class BindHelper
                 text = text.replace "$#{i}", env
           text
           
-        nextCommand = (promise, next_text)->
-          promise.then (out)->
+        nextCommand = (promise, next_text)=>
+          promise.then (out)=>
             pipe = new PipeRouter router
             envs = out.split /\s+/g
             envs = [out, envs...]
+            
             next_text = replaceText next_text, envs
-            manager.handleText sender, next_text, pipe, {fromBinding: true, isCommand: true}, null
-            pipe.forceCheck()
-            pipe.promise
-          .then (data)->data.result
+            next_args = manager.parseArgs next_text
+            
+            if @filterMap[next_args[0]]
+              new Promise (resolve, reject)=>
+                resolve {
+                  result: @filterMap[next_args[0]].handle sender, out, next_args, manager, router
+                }
+            else
+              manager.handleText sender, next_text, pipe, {fromBinding: true, isCommand: true}, null
+              pipe.forceCheck()
+              pipe.promise
+          .then (data)-> data.result
           
         text = replaceText text, envs
         
