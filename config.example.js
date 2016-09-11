@@ -93,7 +93,7 @@ var config = {
     commandManager.register ("feizhai", new CommandFeiZhai(), ['fat', '肥宅']);
     
     var CommandChannelName = require('./lib/commands/commandchannelname.js');
-    commandManager.register ("channel_name", new CommandChannelName(), []);
+    commandManager.register ("channel_name", new CommandChannelName(), ['channel']);
     
     var CommandEchoReply = require('./lib/commands/commandechoreply.js');
     commandManager.register ("echo_reply", new CommandEchoReply(), []);
@@ -107,6 +107,27 @@ var config = {
     // potential memeroy and cpu usage spam
     // var CommandMath = require('./lib/commands/commandmath.js');
     // commandManager.register ("calc", new CommandMath(), ['math', 'c']);
+    
+    var CommandCpu = require('./lib/commands/commandcpu.js');
+    commandManager.register ("cpu", new CommandCpu(), []);
+    
+    var CommandOsInfo = require('./lib/commands/commandosinfo.js');
+    commandManager.register ("os", new CommandOsInfo(), []);
+    
+    var CommandMemory = require('./lib/commands/commandmemory.js');
+    commandManager.register ("memory", new CommandMemory(), []);
+    
+    var CommandProcess = require('./lib/commands/commandprocess.js');
+    commandManager.register ("process", new CommandProcess(), []);
+    
+    var CommandBotName = require('./lib/commands/commandbotname.js');
+    commandManager.register ("botname", new CommandBotName(), []);
+    
+    var CommandWhoami = require('./lib/commands/commandwhoami.js');
+    commandManager.register ("whoami", new CommandWhoami(), ['selfname']);
+    
+    var CommandTime = require('./lib/commands/commandtime.js');
+    commandManager.register ("time", new CommandTime(), []);
     
     
     helper.safeLoad(function(){
