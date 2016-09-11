@@ -8,6 +8,9 @@ var config = {
   saveFolder : "save",
   saveName : "cm.json",
   init : function (commandManager, helper) {
+    // var TelegramRouter = require('./lib/router/tgrouter')
+    // commandManager.addRouter(new TelegramRouter('000000000:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'))
+    
     var path = require("path");
     
     var chatLogPath = 'chatlog.json';
@@ -36,6 +39,13 @@ var config = {
     
     var CommandDemorse = require('./lib/commands/commanddemorse.js');
     
+    var CommandMe = require('./lib/commands/commandme.js');
+    var CommandMail = require('./lib/commands/commandmail.js');
+    var CommandMcStatus = require('./lib/commands/commandmcstatus.js');
+    var CommandTranslate = require('./lib/commands/commandtranslate.js');
+    var CommandHello = require('./lib/commands/commandhello.js');
+    var CommandGoogle = require('./lib/commands/commandgoogle.js');
+    
     commandManager.register ("say", new CommandSay, []);
     commandManager.register ("rainbow", new CommandRainbow, []);
     commandManager.register ("rainbow2", new CommandRainbow2, []);
@@ -56,6 +66,17 @@ var config = {
     
     commandManager.register ("demorse", new CommandDemorse(), []);
     
+    commandManager.register ("me", new CommandMe(), []);
+    commandManager.register ("mail", new CommandMail(helper.createStorage(mailboxPath)), []);
+    commandManager.register ("mcstatus", new CommandMcStatus(), ['mc']);
+    commandManager.register ("translate", new CommandTranslate(), ['tr']);
+    commandManager.register ("hello", new CommandHello(), ['start']);
+    commandManager.register ("google", new CommandGoogle({
+      tld: "com.tw",
+      lang: "zh-TW",
+      nextText: "下一頁"
+    }), ['g']);
+    
     var CommandTranslate = require('./lib/commands/commandtranslate.js');
     commandManager.register ("translate", new CommandTranslate(), ['tr']);
 
@@ -63,6 +84,30 @@ var config = {
     // mongodb based log command
     //var CommandLog2 = require('./lib/commands/commandlog2.js');
     //commandManager.register ("log", new CommandLog2('mongodb://localhost/test', '+08:00', 'zh-tw'), []);
+    
+    
+    var CommandZhengTai = require('./lib/funnycommands/commandzhengtai.js');
+    commandManager.register ("zhengtai", new CommandZhengTai(), ['cute', '正太']);
+    
+    var CommandFeiZhai = require('./lib/funnycommands/commandfeizhai.js');
+    commandManager.register ("feizhai", new CommandFeiZhai(), ['fat', '肥宅']);
+    
+    var CommandChannelName = require('./lib/commands/commandchannelname.js');
+    commandManager.register ("channel_name", new CommandChannelName(), []);
+    
+    var CommandEchoReply = require('./lib/commands/commandechoreply.js');
+    commandManager.register ("echo_reply", new CommandEchoReply(), []);
+    
+    var CommandReplyHtml = require('./lib/commands/commandreplyhtml.js');
+    commandManager.register ("reply_html", new CommandReplyHtml(), []);
+    
+    var CommandUpsideDown = require('./lib/commands/commandupsidedown.js');
+    commandManager.register ("upsidedown", new CommandUpsideDown(), ['upd']);
+    
+    // potential memeroy and cpu usage spam
+    // var CommandMath = require('./lib/commands/commandmath.js');
+    // commandManager.register ("calc", new CommandMath(), ['math', 'c']);
+    
     
     helper.safeLoad(function(){
       var CommandTitle = require('./lib/commands/titleparser')

@@ -5,7 +5,7 @@ class Imodule extends Icommand
     @commandMap = {}
     
     @registerCommand 'help', {
-      help : (()-> return 'show message of sub commands'),
+      help : (@help.bind this),
       handle : (@subCommandHelp.bind this),
       hasPermission : (()-> true),
       handleRaw : (()-> false)
@@ -68,6 +68,10 @@ class Imodule extends Icommand
     true
   
   getSubHelpMessage: (prefix, command)->
-    @commandMap[command].help prefix
+    temp = @commandMap[command].help prefix
+    if Array.isArray temp
+      temp.join '\r\n'
+    else
+      temp
     
 module.exports = Imodule

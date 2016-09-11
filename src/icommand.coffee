@@ -2,7 +2,7 @@
 class Icommand
   constructor: ()->
     
-  handle: (senter ,text, args, storage, textRouter, commandManager, fromBinding)->
+  handle: (senter ,text, args, storage, textRouter, commandManager, fromBinding, originalMessage)->
     textRouter.output "add method to compelete this!"
     success = false
     return success
@@ -16,10 +16,13 @@ class Icommand
   
   handleRaw: (sender, type, content, textRouter, commandManager, event)->return false
   
-  __createAsInstance__: (obj)->
+  isBindSymbol: ()-> false
+  
+  Icommand.__createAsInstance__ = (obj)->
     instance = new Icommand
-    for key, value of obj
-      instance[key] = value
-    instance
+    for key, value of instance
+      if not obj[key]?
+        obj[key] = instance[key]
+    obj
   
 module.exports = Icommand

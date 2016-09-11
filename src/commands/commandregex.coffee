@@ -56,7 +56,7 @@ class CommandRegex extends Icommand
     #console.log sender, @enabled
     if not sender or not @enabled[sender.target]
       return true
-    if type isnt "text"
+    if type isnt "message" or not content.text or content.medias.length > 0
       return true
     
     #console.log content
@@ -65,26 +65,40 @@ class CommandRegex extends Icommand
       sender.target.search '#'
       return
     
-    tags = (/^([a-zA-Z0-9_]+)(?:\s?[,:]\s?|\s)(.+)$/).exec content
+    tags = (/^([a-zA-Z0-9_@]+)(?:\s?[,:]\s?|\s)(.+)$/).exec content.text
     
     maybeACommand = false
     if not tags
-      result = @_parseCommand content
-      maybeACommand = !!content.match /^s\//
+      result = @_parseCommand content.text
+      maybeACommand = !!content.text.match /^s\//
       sayer = sender.sender
     else
       result = @_parseCommand tags[2]
-      sayer = tags[1]
+      sayer = textRouter.fromDisplayName tags[1]
       maybeACommand = !!tags[2].match /^s\//
       referredBy = sender.sender
     
+    if content.replyTo
+      referredBy = sender.sender
+      sayer = sender.sender
+    
     #console.log result, @lastMessages[sayer], maybeACommand
     
-    if (not result || not @lastMessages[sayer] || commandManager.isBanned sender)
+    if (not result || (not @lastMessages[sayer] and not content.replyTo) || commandManager.isBanned sender)
       if not maybeACommand
         @lastMessages[sender.sender] = @lastMessages[sender.sender] || []
-        @lastMessages[sender.sender].unshift content
+        @lastMessages[sender.sender].unshift content.text
         @lastMessages[sender.sender] = @lastMessages[sender.sender][0..@record - 1]
+      return true
+    
+    if content.replyTo
+      if false != @_replaceText content.replyTo.message.text, result
+        changesMessage = @_replaceText content.replyTo.message.text, result
+        if sender.sender isnt content.replyTo.sender.sender
+          commandManager.send sender, textRouter, "#{textRouter.toDisplayName referredBy} #{@locale.think} #{textRouter.toDisplayName content.replyTo.sender.sender} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}"
+        else
+          commandManager.send sender, textRouter, "#{textRouter.toDisplayName sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}"
+
       return true
     
     for message, index in @lastMessages[sayer]
@@ -93,9 +107,9 @@ class CommandRegex extends Icommand
         changesMessage = @_replaceText message, result
         @lastMessages[sayer][index] = changesMessage
         if not referredBy
-          textRouter.output "#{sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
+          textRouter.output "#{textRouter.toDisplayName sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
         else
-          textRouter.output "#{referredBy} #{@locale.think} #{sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
+          textRouter.output "#{textRouter.toDisplayName referredBy} #{@locale.think} #{textRouter.toDisplayName sayer} #{@locale.preMean}\u0002#{@locale.mean}\u000f#{@locale.postMean} \u001d#{changesMessage}", sender.target
         break
     
     return true

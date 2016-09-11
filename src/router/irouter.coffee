@@ -2,11 +2,16 @@ Defer = require '../defer'
 
 class IRouter extends Defer
   constructor: ()->
+    super
     @maxLength = 350
   
   output : (message, to)->
-
+  
+  outputMessage: (message, to)->
+  
   input : (message, from, to, channal)->
+    
+  inputMessage : (message, from, to, channal)->
     
   inputMe : (message, from, to, channal)->
   
@@ -30,4 +35,12 @@ class IRouter extends Defer
   
   getChannels : (channels)->
 
+  getRouterIdentifier : ()->
+    
+  toDisplayName: (str)-> str.replace /@.*/, ''
+  
+  fromDisplayName: (str)-> str
+  
+  isCommand: null
+  
 module.exports = IRouter

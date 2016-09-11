@@ -17,8 +17,20 @@ class CommandSay extends Icommand
     if args.length == 1 or (args.length == 2 and args[1] == "")
       return false
     
-    message = args[1..].join " "
-    message = message.replace /\\n/g, "\n"
+    if args[1] == '-r'
+      message = args[2..].join " "
+    else if args[1] == '-j'
+      message = args[2..].join " "
+      message = '"' + message + '"'
+      try
+        message = JSON.parse message
+        message = message.toString()
+      catch e
+        console.log e
+        message = args[2..].join " "
+    else
+      message = args[1..].join " "
+      message = message.replace /\\n/g, "\n"
     
     temp = message.split ""
     
@@ -36,7 +48,13 @@ class CommandSay extends Icommand
     return success
   
   help: (commandPrefix)->
-    return ["make this bot to say some message, Usage", "#{commandPrefix} messages.."];
+    return [
+      "make this bot to say some message, Usage", 
+      "#{commandPrefix} [-rj] messages..",
+      "flags:",
+      "r: raw string, no line break",
+      "j: full js format string"
+    ];
   
   hasPermission: (sender ,text, args, storage, textRouter, commandManager)->
     return true

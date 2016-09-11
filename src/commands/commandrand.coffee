@@ -1,4 +1,5 @@
 Icommand = require '../icommand.js'
+TraceRouter = require '../router/tracerouter'
 
 class CommandRand extends Icommand
   constructor: (@seperator = "|")->
@@ -34,7 +35,16 @@ class CommandRand extends Icommand
     if not commands[chosen]
       return false
     
-    commandManager.handleText sender, commands[chosen], textRouter, true, fromBinding
+    done = textRouter.async()
+    
+    trace = new TraceRouter textRouter
+    commandManager.handleText sender, commands[chosen], trace, {fromBinding: fromBinding, isCommand: true}
+    trace.forceCheck()
+    
+    trace.promise.then ()->
+      done()
+    .catch ()->
+      done()
     
     #textRouter.output message, sender.channel
     return true

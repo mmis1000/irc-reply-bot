@@ -1,14 +1,19 @@
 Icommand = require '../icommand.js'
 mongoose = require 'mongoose'
 moment = require 'moment'
+mubsub = require 'mubsub'
+Grid = require 'gridfs-stream'
+Q = require 'q'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandLogs extends Icommand
-  constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages')->
+  constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages', @gridFSCollectionName = 'FileContent')->
     @defaultPageShow = 10
     @pageShowMax = 15
     @Message = null
+    
+    @MessageChannel = null;
     
     mongoose.connect @dbpath
     
@@ -16,38 +21,52 @@ class CommandLogs extends Icommand
     db.on 'error', @_onDbConnect.bind @
     db.once 'open', @_onDbConnect.bind @, null
     
+    console.log @dbpath, "#{@collectionName}Trigger"
+    @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
+    
   _onDbConnect: (err, cb)=>
+    @gfs = Grid mongoose.connection.db, mongoose.mongo
+    
     if err
       console.error 'db error : '
       console.error err
       return
     
-    MessageSchema = mongoose.Schema {
-      from : String
-      to : String
-      message : String
-      isOnChannel : Boolean
-      time : { type : Date, index : true }
-    }, { collection : @collectionName }
+    fileSchemaFactory = require './log_modules/file_schema_factory'
+    FileSchema = fileSchemaFactory mongoose
+    @File =  mongoose.model 'File', FileSchema
     
-    self = @
-    MessageSchema.methods.toString = ()->
-      timeStamp = moment @time
-      .utcOffset self.timezone
-      .locale self.locale
-      .format 'YYYY-MM-DD hh:mm:ss a'
-      
-      "#{timeStamp} #{@from} => #{@to}: #{@message}"
+    mediaSchemaFactory = require './log_modules/media_schema_factory'
+    MediaSchema = mediaSchemaFactory mongoose, 'Files'
+    @Media =  mongoose.model 'Media', MediaSchema
     
+    messageSchemaFactory = require './log_modules/message_schema_factory'
+    MessageSchema = messageSchemaFactory mongoose, @timezone, @locale, 'Medias'
     @Message =  mongoose.model 'Message', MessageSchema
     
+  triggerDbUpdate: (obj)->
+    #console.log('trigger %j', obj)
     
+    clonedObj = {}
+    
+    clonedObj.from = obj.from
+    clonedObj.to = obj.to
+    clonedObj.time = obj.time
+    clonedObj.isOnChannel = obj.isOnChannel
+    clonedObj.message = obj.message
+    clonedObj.medias = obj.medias
+    clonedObj.meta = obj.meta
+    clonedObj._id = obj._id
+    
+    @MessageChannel.publish('update', {'data' : clonedObj});
+  
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length < 2
       return false
     
     if args[1] is "find"
-      @_findlog(sender ,text, args, storage, textRouter, commandManager)
+      done = textRouter.async()
+      @_findlog(sender ,text, args, storage, textRouter, commandManager, done)
     else
       false
   ###
@@ -82,7 +101,7 @@ class CommandLogs extends Icommand
       args : args
       flags : flagResult
     }
-  _findlog: (sender ,text, args, storage, textRouter, commandManager)->
+  _findlog: (sender ,text, args, storage, textRouter, commandManager, done)->
     {args, flags} = @_extractFlags args, {
       '-s' : 1
       '-t' : 1
@@ -92,15 +111,22 @@ class CommandLogs extends Icommand
     }
     
     
-    return false if args.length < 2 or args.length > 4
-
-    return false if args[1] isnt 'find'
+    if args.length < 2 or args.length > 4
+      done()
+      return false 
+    if args[1] isnt 'find'
+      done()
+      return false
     
     args[2] = parseInt args[2], 10 if args[2]?
     args[3] = parseInt args[3], 10 if args[3]?
     
-    return false if args[2] and isNaN args[2]
-    return false if args[3] and isNaN args[3]
+    if args[2] and isNaN args[2]
+      done()
+      return false
+    if args[3] and isNaN args[3]
+      done()
+      return false
     
     pageNumber = args[2] || 1
     pageSize = args[3] || @defaultPageShow
@@ -163,25 +189,18 @@ class CommandLogs extends Icommand
           $lt : timeTo
         }
       else
+        done()
         return false
-    
-    
-    ###
-    if flags['-t']?
-      if flags['']
-    ###
     
     query = @Message.find query 
     
     query.count (err, count)=>
       console.log err if err?
-      return if err?
+      if err?
+        done()
+        return
       
       total = count
-      
-      #console.log count
-      #console.log (pageNumber - 1) * pageSize
-      #console.log pageSize
       
       maxPage = Math.ceil total / pageSize
       
@@ -205,105 +224,7 @@ class CommandLogs extends Icommand
           commandManager.sendPv sender, textRouter, message.toString()
         
         commandManager.sendPv sender, textRouter, "Page #{pageNumber} of total #{maxPage} Pages. Time Zone is #{@timezone}"
-    
-  ###
-  _showlog: (sender ,text, args, storage, textRouter, commandManager, list)->
-    if args.length > 4
-      return false
-    
-    pageNumber = if args[2] then (parseInt args[2]) else 1
-    recordsPerPage = if args[3] then (parseInt args[3]) else @defaultPageShow
-    
-    if isNaN pageNumber
-      return false
-    if isNaN recordsPerPage
-      return false
-    
-    if not commandManager.isOp sender.sender
-      if recordsPerPage > @userPageShowMax
-        recordsPerPage = @userPageShowMax
-    
-    result = @_pagelog list, recordsPerPage, pageNumber
-    
-    replys = []
-    
-    for record in result.list
-      date = new Date record.time
-      replys.push "#{date.getFullYear()}/\
-        #{date.getMonth() + 1}/\
-        #{date.getDate()}-\
-        #{date.getHours()}:\
-        #{date.getMinutes()}:\
-        #{date.getSeconds()}
-        #{record.from} =>
-        #{record.to} :
-        #{record.message}"
-    
-    replys.push "page #{result.pageNumber} of #{result.allPage}"
-    textRouter.output replys, sender.sender
-    return true
-    
-  _findlog: (sender ,text, args, storage, textRouter, commandManager, list)->
-    
-    
-    if args.length > 6 || args.length < 4
-      return false
-    if 0 > ["sender", "text", "target"].indexOf args[2]
-      return false
-    
-    pageNumber = if args[4] then (parseInt args[4]) else 1
-    recordsPerPage = if args[5] then (parseInt args[5]) else @defaultPageShow
-    
-    if isNaN pageNumber
-      return false
-    if isNaN recordsPerPage
-      return false
-    
-    
-    try 
-      regex = new RegExp args[3]
-    catch
-      textRouter.output "\u000304invalid regex", sender.sender
-      return true
-    
-    switch args[2]
-      when "sender"
-        list = list.filter (obj)->
-          0 <= obj.from.search regex
-      when "text"
-        list = list.filter (obj)->
-          0 <= obj.message.search regex
-      when "target"
-        list = list.filter (obj)->
-          0 <= obj.to.search regex
-    
-    return @_showlog sender ,text, [args[0], "show", args[4], args[5]], storage, textRouter, commandManager, list
-    
-  _pagelog: (list, itemPerPage, pageNumber)->
-    totalPage = Math.ceil (list.length / itemPerPage)
-    
-    indexStart = list.length - pageNumber * itemPerPage
-    indexEnd = indexStart + itemPerPage
-    
-    indexStart = if (indexStart >= 0) then indexStart else 0
-    indexEnd = if (indexEnd >= 0) then indexEnd else 0
-    indexStart = if (indexStart <= list.length) then indexStart else list.length
-    indexEnd = if (indexEnd <= list.length) then indexEnd else list.length
-    
-    newList = []
-    
-    i = indexStart
-    while i < indexEnd
-      newList.push list[i]
-      i++
-    
-    filteredList = 
-      list : newList
-      pageNumber : pageNumber
-      allPage :totalPage
-    
-    return filteredList
-  ###
+        done()
   help: (commandPrefix)->
     return [
       "view recent talks, this command will force send to you instead of channel ",
@@ -323,27 +244,201 @@ class CommandLogs extends Icommand
     return true
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
-    return false  if type isnt "text"
+    return false  if not (type in ["message", "outputMessage"])
     
-    args = commandManager.parseArgs content
+    if type is "message"
     
-    return false if args[0] is "log"
-    
-    onChannel = 0 is sender.target.search /#/
-    
-    message = new @Message {
-      from : sender.sender
-      to : sender.target
-      message : content
-      isOnChannel : onChannel
-      time : new Date
-    }
-    
-    message.save (err)->
+      onChannel = 0 is sender.target.search /#/
+      date = content.meta.time or new Date
+      
+      if content.asText && content.medias.length is 0
+        args = commandManager.parseArgs content.text
+        
+        return false if args[0] is "log"
+        
+        # message format v2
+        if content.textFormated and content.textFormat
+          message = new @Message {
+            from : sender.sender
+            to : sender.target
+            message : content.text
+            messageFormat : content.textFormat
+            messageFormated : content.textFormated
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.meta
+          }
+        else
+          message = new @Message {
+            from : sender.sender
+            to : sender.target
+            message : content.text
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.meta
+          }
+      else if content.medias.length > 0
+        if !@gfs
+          mongoose.connection.setMaxListeners Infinity
+          mongoose.connection.once 'open', ()=>
+            @handleRaw sender, type, content, textRouter, commandManager
+          return
+        @_saveMediaMessage sender.sender, sender.target, content
+        return
+      else
+        # should never goto here, if it is, it is a bug
+        return
+    if type is "outputMessage"
+      
+      onChannel = 0 is content.target.search /#/
+      
+      if content.message.asText && content.message.medias.length is 0
+        args = commandManager.parseArgs content.message.text
+        return false if args[0] is "log"
+      
+        # message format v2
+        if content.message.textFormated and content.message.textFormat
+          message = new @Message {
+            from : textRouter.getSelfName()
+            to : content.target
+            message : content.message.text
+            messageFormat : content.message.textFormat
+            messageFormated : content.message.textFormated
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.message.meta
+          }
+        else
+          message = new @Message {
+            from : textRouter.getSelfName()
+            to : content.target
+            message : content.message.text
+            isOnChannel : onChannel
+            time : date
+            medias: []
+            meta: content.message.meta
+          }
+      else
+        @_saveMediaMessage textRouter.getSelfName(), content.target, content.message
+        return
+    message.save (err, remoteMessage)=>
       if err?
-        console.error "error during save message: #{err.toString()}"
+        return console.error "error during save message: #{err.toString()}"
+      @triggerDbUpdate message
       null
+      
     
     return true
+  
+  
+  _saveFile: (file)->
+    defered = Q.defer()
+    @File.findOne {_id: file.UID}
+    .then (doc)=>
+      if doc
+        console.log "file #{file.UID} existed. skipping..."
+        defered.resolve doc
+        throw new Error 'doc exist'
+      writestream = @gfs.createWriteStream {
+        filename: file.UID
+        content_type: file.MIME
+        root: @gridFSCollectionName
+      }
+      ###
+      console.log {
+        filename: file.UID
+        content_type: file.MIME
+        root: @gridFSCollectionName
+      }
+      ###
+      stream = require 'stream'
+      bufferStream = new stream.PassThrough()
+      bufferStream.end new Buffer file.content
+      bufferStream.pipe writestream
+      
+      writestream.on 'close', ()->
+        console.log "file: #{file.UID} was writed to db"
+      
+      query = @File.findOneAndUpdate {
+        _id: file.UID
+      }, {
+        _id: file.UID
+        MIME: file.MIME
+        length: file.length
+        photoSize: file.photoSize
+        isThumb: file.isThumb
+        contentSource: 'db'
+        contentSrc: file.UID
+      }, {
+        upsert: true
+      }
+      query.exec()
+    .then (file)->
+      defered.resolve file
+    .catch (err)->
+      defered.reject err
 
+    defered.promise
+    
+  _saveMedia: (media)->
+    defered = Q.defer()
+    @Media.findOne {_id: media.id}
+    .then (doc)=>
+      if doc
+        console.log "media #{media.id} existed. skipping..."
+        defered.resolve doc
+        throw new Error 'doc exist'
+      @Media.findOneAndUpdate {
+        _id: media.id
+      }, {
+        _id: media.id
+        files: (media.files.map (i)-> i.UID)
+        role: media.role
+        placeHolderText: media.placeHolderText
+        meta: media.meta
+      }, {
+        upsert: true
+      }
+      .exec()
+    .then (media)->
+      defered.resolve media
+    .catch (err)->
+      defered.reject err
+
+    defered.promise
+  
+  _saveMediaMessage: (from, to, message)->
+    date = message.meta.time or new Date
+    onChannel = 0 is to.search /#/
+    
+    (Q.all (message.medias.map (media)=>
+      return media.getAllFiles())
+    ).then (files)=>
+      flattenFiles = [].concat.apply([], files);
+      return flattenFiles.map (file)=>
+        @_saveFile file
+    .then ()=>
+      console.log "all file infos was saved to db"
+      Q.all message.medias.map (media)=>
+        @_saveMedia media
+    .then ()=>
+      console.log "all media infos was saved to db"
+      mongoMessage = new @Message {
+        from : from
+        to : to
+        message : message.text
+        isOnChannel : onChannel
+        time : date
+        medias: (message.medias.map (i)-> i.id)
+        meta: message.meta
+      }
+      mongoMessage.save()
+    .then (message)=>
+      @triggerDbUpdate message
+      console.log "message was saved to db"
+    .catch (err)->
+      console.error err.stack
 module.exports = CommandLogs

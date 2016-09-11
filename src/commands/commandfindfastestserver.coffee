@@ -20,6 +20,7 @@ class CommandFindFastestServer extends Icommand
       dns.resolve mainDomain, 'A', (err, addresses)=>
         if err
           commandManager.sendPv sender, textRouter, "FindFastestServer : fail to resolve #{target} in type A due to #{err.toString()}"
+          done()
           return
         
         AddressStates = []

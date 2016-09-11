@@ -23,5 +23,5 @@ virtual_class = (classes...)->
         Child_Projection[key] = Child[key]
 
     Child_Projection
-
+  
 module.exports = virtual_class

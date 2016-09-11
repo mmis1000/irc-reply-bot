@@ -1,4 +1,7 @@
-const CHILD_MARKUP_EVN = require("./enum").CHILD_MARKUP_EVN
+const CHILD_MARKUP_EVN = require("./enum").CHILD_MARKUP_EVN,
+  forever = require("forever"),
+	path = require('path');
+
 //console.log(process.version);
 function Bot () {
   this.manager = null;
@@ -11,7 +14,10 @@ function Bot () {
   this.isChild = null;
   this.exiting = false;
   
+  this.isForeverChild = null;
+  
   this._initChildHandler();
+  this._checkForeverChild();
   this._load();
   this._setExitHandle();
 }
@@ -75,17 +81,37 @@ Bot.prototype._initChildHandler = function () {
   }
 };
 
+Bot.prototype._checkForeverChild = function () {
+  var self = this;
+  self.isForeverChild = false;
+  forever.list(false, function (err, daemons) {
+    if (err || !daemons) return;
+  	daemons.forEach(function (daemon, index) {
+  		var realPath = path.resolve(daemon.spawnWith.cwd, daemon.file)
+  		if (
+  			realPath === __filename &&
+  			process.pid === daemon.pid
+  		) {
+  		  self.isForeverChild = true;
+  		}
+  	})
+  })
+};
+
 
 Bot.prototype.reload = function () {
   /*
    * Since it is impossible to reload the process itself without ran by a
    * loader.
    */
-  if (!this.isChild) {
-    return false;
-  } else {
+  if (this.isChild) {
     this.postMessage('reload');
     return true;
+  } else if (this.isForeverChild) {
+    forever.restart(process.pid);
+    return true;
+  } else {
+    return false;
   }
 };
 
@@ -98,6 +124,8 @@ Bot.prototype.exit = function () {
   
   if (this.isChild) {
     this.postMessage('exit');
+  } else if (this.isForeverChild) {
+    forever.stop(process.pid);
   } else {
     process.kill(process.pid, 'SIGINT');
     // so it has time for every module to shutdown
@@ -128,7 +156,8 @@ Bot.prototype._setExitHandle = function () {
     
     if (options.cleanup) console.log('cleaning up...');
     if (err) {
-      console.log(err);
+      console.error(err);
+      console.error(err.stack);
     }
     if (options.exit) {
       if (self._exiting) {return;}

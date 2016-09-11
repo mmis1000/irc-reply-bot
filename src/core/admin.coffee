@@ -38,10 +38,12 @@ class Admin extends Imodule
   _exit: (sender ,text, args, storage, textRouter, commandManager)->
     commandManager.send sender, textRouter, 'exiting the bot...'
     @bot.exit()
-  
+    true
+    
   _reload: (sender ,text, args, storage, textRouter, commandManager)->
     if not @bot.reload()
       commandManager.send sender, textRouter, 'it seems the bot can\'t reload itself'
     else
       commandManager.send sender, textRouter, 'reloading the bot...'
+    true
 module.exports = Admin
