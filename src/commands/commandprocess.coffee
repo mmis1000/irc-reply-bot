@@ -1,16 +1,4 @@
-#os = require 'os'
-
-style = 
-  red : "\u000304"
-  yellow : "\u000308"
-  green : "\u000309"
-  
-  dark_red : "\u000305"
-  dark_green : "\u000303"
-  orange : "\u000307"
-  
-  bold : "\u0002"
-  reset : "\u000f"
+Icommand = require '../icommand.js'
 
 formatMemory = (num, type = 'auto', showType = 'show')->
   if type is 'auto'
@@ -34,25 +22,31 @@ padding = (str, fill, len)->
     str = fill + str
   return str
 
-
-class Process 
-  constructor : ()->
-    @symbols = ['process']
+class CommandProcess extends Icommand
+  constructor: ()->
     @displayed = ['pid', 'memoryUsage', 'uptime']
-  
-  handle : (sender, content, args, manager, router)->
-    if args.length is 0
-      args.push 'all'
-    output = []
-    if args[0] is 'all'
-      for type in @displayed
-        output.push "#{style.bold}#{type}#{style.reset} : #{@_getValue type}"
-    else if args[0] in @displayed
-      output.push @_getValue type
-    else
-      output.push "unknown type #{args[0]}"
-    output.join ', '
     
+  handle: (sender ,text, args, storage, textRouter, commandManager)->
+    if args.length is 1
+      args.push 'all'
+
+    if args.length > 2
+      return false
+    if 0 > (['all'].concat @displayed).indexOf args[1]
+      return false
+    
+    output = []
+    if args[1] is 'all'
+      for type in @displayed
+        output.push "#{type} : #{@_getValue type}"
+    else if args[1] in @displayed
+      output.push @_getValue args[1]
+    else
+      return false
+    
+    commandManager.send sender, textRouter, output.join ', '
+    
+    true
   _getValue : (type)->
     
     if 'function' is typeof process[type]
@@ -88,5 +82,14 @@ class Process
       return res.join ', '
     
     val.toString()
+  
+  help: (commandPrefix)->
+    #console.log "add method to override this!"
+    return ["Show process info of this bot, Usage: ", 
+      "#{commandPrefix} [all|pid|memoryUsage|uptime].",
+    ];
+  
+  hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
+    return true
 
-module.exports = new Process
+module.exports = CommandProcess

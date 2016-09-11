@@ -1,3 +1,4 @@
+Icommand = require '../icommand.js'
 os = require "os"
 
 intervalMS = 30 * 1000
@@ -7,16 +8,16 @@ stats = []
 loads = null
 
 style = 
-  red : "\u000304"
-  yellow : "\u000308"
-  green : "\u000309"
+  red : ""
+  yellow : ""
+  green : ""
   
-  dark_red : "\u000305"
-  dark_green : "\u000303"
-  orange : "\u000307"
+  dark_red : ""
+  dark_green : ""
+  orange : ""
   
-  bold : "\u0002"
-  reset : "\u000f"
+  bold : ""
+  reset : ""
 
 addStat = ()->
   stats.unshift os.cpus()
@@ -60,18 +61,24 @@ addStat()
 
 setInterval addStat, intervalMS
 
-class Cpu
-  constructor : ()->
-    @symbols = ['cpu']
-  
-  handle : (sender, content, args, manager, router)->
-    #types all, load, speed, model
+class CommandCpu extends Icommand
+  constructor: ()->
+    
+  handle: (sender ,text, args, storage, textRouter, commandManager)->
+    args = args[1..]
     
     if args.length is 0
       args.push 'all'
     
     if args.length is 1
       args.push -1
+
+    if args.length > 2
+      return false
+    if 0 > ['all', 'load', 'clock', 'model'].indexOf args[0]
+      return false
+    if isNaN Number args[1]
+      return false
     
     output = ""
     
@@ -82,23 +89,17 @@ class Cpu
       for item, index in current
         output += "#{style.bold}##{index}:#{style.reset} "
         if args[0] is 'all'
-          
           output += "Load #{loadToString loads[index]}% "
-          
           output += "Clock #{item.speed}mhz "
-          
           output += "Model #{item.model} \n"
         
         if args[0] is 'load'
-          
           output += "#{loadToString loads[index]}%, "
         
         if args[0] is 'clock'
-          
           output += "#{item.speed}Mhz, "
         
         if args[0] is 'model'
-          
           output += "#{item.model} \n"
     else
       item = current[args[1]]
@@ -106,24 +107,31 @@ class Cpu
         return "core #{args[1]} does not exist"
       
       if args[0] is 'all'
-        
         output += "Load #{loadToString loads[index]}% "
-        
         output += "Clock #{item.speed}mhz "
-        
         output += "Model #{item.model}"
       
       if args[0] is 'load'
-        
         output += "#{loadToString loads[index]}%, "
       
       if args[0] is 'clock'
-        
         output += "#{item.speed}Mhz, "
       
       if args[0] is 'model'
-        
         output += "#{item.model}n"
       
-    output 
-module.exports = new Cpu
+    commandManager.send sender, textRouter, output 
+    true
+
+  help: (commandPrefix)->
+    #console.log "add method to override this!"
+    return [
+      "check cpu info Usage:",
+      "#{commandPrefix} [all|load|clock|model] [core number]",
+      "use -1 to show all cores"
+    ];
+  
+  hasPermission: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
+    return true
+
+module.exports = CommandCpu
