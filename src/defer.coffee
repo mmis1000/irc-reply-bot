@@ -17,8 +17,9 @@ class _Task
   constructor: (display)->
     @uuid = uuid()
     
-    display = "unnamed task #{@uuid}" if not display?
-    
+    if not display?
+      # console.log (new Error).stack
+      display = "unamed task created at #{new Date}"
     @display = display
     @result = null
     
@@ -52,7 +53,8 @@ class Defer extends EventEmitter
         task.finished = true
         task.done = true
         
-        console.log "finished #{task.display}"
+        if task.display isnt ""
+          console.log "finished #{task.display}"
         
         @_checkUpTesk()
     

@@ -35,7 +35,7 @@ class CommandRand extends Icommand
     if not commands[chosen]
       return false
     
-    done = textRouter.async()
+    done = textRouter.async "[ running selected random command: #{commands[chosen]} ]"
     
     trace = new TraceRouter textRouter
     commandManager.handleText sender, commands[chosen], trace, {fromBinding: fromBinding, isCommand: true}

@@ -137,7 +137,7 @@ class CommandManager extends EventEmitter
     result.fromBinding = result.fromBinding or false
     result.text = text
     # hold the router
-    done = textRouter.async()
+    done = textRouter.async ""
     co.call @, ()->
       currentIdentifier = @identifier
       if textRouter.getIdentifier
