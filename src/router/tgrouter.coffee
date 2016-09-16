@@ -220,12 +220,14 @@ class TelegramRouter extends TextRouter
   
   isCommand: (str, sender, manager)->
     
-    if (not str.match /^\//) or ((str.match /@/) and not (str.match new RegExp "@#{@_botInfo.username}($|[\\r\\n\\s])"))
+    if (not str.match /^\//)
       return false
       
     temp = str.replace /^\//, ''
     .split /\u0020/g
     
+    if ((temp[0].match /@/) and not (temp[0].match new RegExp "@#{@_botInfo.username}($|[\\r\\n\\s])"))
+      return false
     args = @parseArgs str
     
     if not manager.hasCommand args[0]
