@@ -2,6 +2,7 @@ var config = {
   host : "chat.freenode.net",
   nick : "repltbot",
   channels : ["#test5566", "#text5577"],
+  // SASL : {account:"your_awesome_account", password: "pa$$w()rd"},
   pingTimeout : 600 * 1000,
   identifier : "*",
   floodProtection : 1000,
