@@ -293,6 +293,7 @@ class CommandLogs extends Icommand
     if type is "outputMessage"
       
       onChannel = 0 is content.target.search /#/
+      date = content.message.meta.time or new Date
       
       if content.message.asText && content.message.medias.length is 0
         args = commandManager.parseArgs content.message.text
