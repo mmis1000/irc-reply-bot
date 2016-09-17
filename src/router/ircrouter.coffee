@@ -1,7 +1,7 @@
 TextRouter = require './textrouter'
 irc = require 'irc'
 class IrcRouter extends TextRouter
-  constructor: (@server, @nick = 'irc-bot', @channels = [], @port = null)->
+  constructor: (@server, @nick = 'irc-bot', @channels = [], @port = null, @SASL = null)->
     super
     @_timeoutId = null;
     @_timeoutInterval = null;
@@ -35,11 +35,21 @@ class IrcRouter extends TextRouter
     @client.connect();
   
   _init: ()->
-    @client = new irc.Client @server, @nick, {
-      channels: @channels,
-      userName: 'replybot',
-      realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
-    }
+    if not @SASL
+      @client = new irc.Client @server, @nick, {
+        channels: @channels,
+        userName: 'replybot',
+        realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
+      }
+    else
+      @client = new irc.Client @server, @nick, {
+        channels: @channels,
+        userName: @SASL.account,
+        password: @SASL.password,
+        sasl: true,
+        realName: 'The Irc Reply Bot Project - http://goo.gl/fCPD4A'
+      }
+
     @client.on 'join', (channel, nick, message) =>
       #console.log Object.keys @client.chans
       @setChannels Object.keys @client.chans

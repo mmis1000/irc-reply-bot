@@ -39,7 +39,7 @@ Bot.prototype._loadAdminModule = function () {
 };
 
 Bot.prototype._loadRouter = function () {
-  this.router = new (require('./lib/router/ircrouter')) (this.config.host, this.config.nick, this.config.channels);
+  this.router = new (require('./lib/router/ircrouter')) (this.config.host, this.config.nick, this.config.channels, null, this.config.SASL);
   if (this.config.floodProtection) {
     this.router.enableFloodProtection(this.config.floodProtection);
   }
