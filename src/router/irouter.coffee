@@ -41,6 +41,8 @@ class IRouter extends Defer
   
   fromDisplayName: (str)-> str
   
-  isCommand: null
+  isCommand: (str)-> throw new Error 'not implement'
+  
+  parseArgs: (str)-> throw new Error 'not implement'
   
 module.exports = IRouter

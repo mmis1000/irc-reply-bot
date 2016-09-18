@@ -5,7 +5,6 @@ const CHILD_MARKUP_EVN = require("./enum").CHILD_MARKUP_EVN,
 //console.log(process.version);
 function Bot () {
   this.manager = null;
-  this.router = null;
   this.adminCommand = null;
   this.config = null;
   this.helper = null;
@@ -24,7 +23,7 @@ function Bot () {
 
 Bot.prototype._load = function () {
   this._loadConfig();
-  this._loadRouter();
+  // this._loadRouter();
   this._loadManager();
   this._loadCoreModule();
   this._loadAdminModule();
@@ -38,19 +37,8 @@ Bot.prototype._loadAdminModule = function () {
   this.manager.load(this.adminCommand);
 };
 
-Bot.prototype._loadRouter = function () {
-  this.router = new (require('./lib/router/ircrouter')) (this.config.host, this.config.nick, this.config.channels, null, this.config.SASL);
-  if (this.config.floodProtection) {
-    this.router.enableFloodProtection(this.config.floodProtection);
-  }
-  if (this.config.pingTimeout) {
-    this.router.enableTiemout(this.config.pingTimeout)
-  }
-  //console.log(this.config.floodProtection, this.config.pingTimeout);
-};
-
 Bot.prototype._loadManager = function () {
-  this.manager = new (require("./lib/commandmanager"))(this.helper.createStorage(this.config.saveName), this.router);
+  this.manager = new (require("./lib/commandmanager"))(this.helper.createStorage(this.config.saveName));
   this.manager.identifier = this.config.identifier;
 };
 

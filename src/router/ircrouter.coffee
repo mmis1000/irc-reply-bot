@@ -1,7 +1,7 @@
 TextRouter = require './textrouter'
 irc = require 'irc'
 class IrcRouter extends TextRouter
-  constructor: (@server, @nick = 'irc-bot', @channels = [], @port = null, @SASL = null)->
+  constructor: (@server, @nick = 'irc-bot', @channels = [], @port = null, @SASL = null, @identifier = '*')->
     super
     @_timeoutId = null;
     @_timeoutInterval = null;
@@ -10,7 +10,7 @@ class IrcRouter extends TextRouter
   enableFloodProtection: (floodProtection)->
     @client.activateFloodProtection floodProtection
   
-  enableTiemout: (timeout)->
+  enableTimeout: (timeout)->
     @_timeoutInterval = timeout
     
     @client.on 'ping', @onPing.bind this;
@@ -140,6 +140,15 @@ class IrcRouter extends TextRouter
     @client.disconnect msg, cb
   
   getRouterIdentifier : ()->
-    return @_routerIndetifier or ''
+    return @identifier or ''
+  
+  isCommand: (text)->
+    return 0 is text.indexOf @identifier
+  
+  parseArgs: (text)->
+    if 0 is text.indexOf @identifier
+      text = text.replace @identifier, ''
+    text = text.replace /^\s+|\s+$/g, ''
+    text.split /\s+/
 
 module.exports = IrcRouter

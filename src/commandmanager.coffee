@@ -10,9 +10,9 @@ escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
-    @identifier = "!"
+    # @identifier = "!"
     @commandFormat = /^.*$/g
-    @keywordPrefix = "^"
+    # @keywordPrefix = "^"
     # these command is deeply hook into runtime thus cannot be implement seperately
     # @reservedKeyWord = ["help", "op", "deop", "bind", "unbind", "bindlist", "ban", "unban"];
     
@@ -95,31 +95,17 @@ class CommandManager extends EventEmitter
     @load new Bind
     @load new Ban
     #bind input stream
-    @defaultRouter = textRouter
-    @routers.push textRouter
     
-    @addRouter textRouter
-    ###
-    textRouter.on "input", (message, sender)=>
+    if textRouter
+      @defaultRouter = textRouter
       
-      @lastChannel = sender.channel
-      @lastSender = sender.channel
+      @addRouter textRouter
+      opList = @storage.get "ops", @defaultOps
+      if opList.length == 0
+        textRouter.on 'connect', ()->
+          textRouter.output "[Warning] no op setted, assume everyone has operator permission"
       
-      @handleRaw sender, "text", message, textRouter
-      @handleText sender, message, textRouter
-    
-    textRouter.on "rpl_join", (channel, sender)=>
-      @handleRaw sender, "join", channel, textRouter
-    
-    textRouter.on "rpl_raw", (reply)=>
-      @handleRaw null, "raw", reply, textRouter
-    ###
-    opList = @storage.get "ops", @defaultOps
-    if opList.length == 0
-      textRouter.on 'connect', ()->
-        textRouter.output "[Warning] no op setted, assume everyone has operator permission"
-    
-    @currentRouter = textRouter
+      @currentRouter = textRouter
     
   handleRaw: (sender, type, contents, textRouter)->
     event = {cancelled : false}
@@ -139,18 +125,16 @@ class CommandManager extends EventEmitter
     # hold the router
     done = textRouter.async ""
     co.call @, ()->
-      currentIdentifier = @identifier
+      currentIdentifier = "(unknown identifier)"
+      
       if textRouter.getIdentifier
         currentIdentifier = textRouter.getIdentifier()
       
       @currentRouter = textRouter
       
       commandManager = @
-      
-      if not textRouter.isCommand
-        result.isCommand = result.isCommand or ((text.search escapeRegex currentIdentifier) == 0)
-      else
-        result.isCommand = result.isCommand or textRouter.isCommand text, sender, @
+
+      result.isCommand = result.isCommand or textRouter.isCommand text, sender, @
       
       result.sender = sender
       result.text = text
@@ -168,15 +152,6 @@ class CommandManager extends EventEmitter
         done()
         return false
       
-      identifierRegex = escapeRegex @identifier
-      ###
-      if 0 == text.search identifierRegex
-        argsText = text.replace @identifier, ""
-      else
-        argsText = text
-      
-      argsText = argsText.replace /^\s+/g, ""
-      ###
       args = opts.args or @parseArgs text
       
       command = args[0]
@@ -337,7 +312,7 @@ class CommandManager extends EventEmitter
 
   _commandHelp: (sender ,text, args, storage, textRouter, commandManager)->
     
-    currentIdentifier = @identifier
+    currentIdentifier = "(unknown identifier)"
     if textRouter.getIdentifier
       currentIdentifier = textRouter.getIdentifier()
     
@@ -437,6 +412,11 @@ class CommandManager extends EventEmitter
 
   addRouter: (textRouter)->
     @routers.push textRouter
+    if not @defaultRouter
+      @defaultRouter = textRouter
+    if not @currentRouter
+      @currentRouter = textRouter
+    
     textRouter.on "input", (message, sender, router = textRouter)=>
       
       @lastChannel = sender.channel

@@ -1,14 +1,32 @@
 var config = {
-  host : "chat.freenode.net",
-  nick : "repltbot",
-  channels : ["#test5566", "#text5577"],
-  // SASL : {account:"your_awesome_account", password: "pa$$w()rd"},
-  pingTimeout : 600 * 1000,
-  identifier : "*",
-  floodProtection : 1000,
   saveFolder : "save",
   saveName : "cm.json",
   init : function (commandManager, helper) {
+    
+    // load gateway to irc server
+    var IrcRouter = require('./lib/router/ircrouter');
+    var ircConfig = {
+      host: "chat.freenode.net",
+      nick: "repltbot",
+      channels: ["#test5566", "#text5577"],
+      port: null,
+      SASL: null,
+      // SASL : {account:"your_awesome_account", password: "pa$$w()rd"},
+      identifier: "*"
+    }
+    var ircRouter = new IrcRouter(
+      ircConfig.host, 
+      ircConfig.nick, 
+      ircConfig.channels, 
+      ircConfig.port, 
+      ircConfig.SASL, 
+      ircConfig.identifier
+    );
+    ircRouter.enableFloodProtection(1000);
+    ircRouter.enableTimeout(600 * 1000)
+    commandManager.addRouter(ircRouter);
+    
+    // load gateway to telegram
     // var TelegramRouter = require('./lib/router/tgrouter')
     // commandManager.addRouter(new TelegramRouter('000000000:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'))
     
