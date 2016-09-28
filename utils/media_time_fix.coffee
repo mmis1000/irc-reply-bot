@@ -13,6 +13,7 @@ waiting = 0
 
 
 Message.find {}
+.sort {time: 1}
 .select 'medias time'
 .lean()
 .stream()
