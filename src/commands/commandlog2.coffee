@@ -392,6 +392,8 @@ class CommandLogs extends Icommand
         console.log "media #{media.id} existed. skipping..."
         defered.resolve doc
         throw new Error 'doc exist'
+      time = media.meta.time
+      delete media.meta.time
       @Media.findOneAndUpdate {
         _id: media.id
       }, {
@@ -399,6 +401,7 @@ class CommandLogs extends Icommand
         files: (media.files.map (i)-> i.UID)
         role: media.role
         placeHolderText: media.placeHolderText
+        time: time
         meta: media.meta
       }, {
         upsert: true
@@ -424,6 +427,8 @@ class CommandLogs extends Icommand
     .then ()=>
       console.log "all file infos was saved to db"
       Q.all message.medias.map (media)=>
+        media.meta = media.meta or {}
+        media.meta.time = media.meta.time or date
         @_saveMedia media
     .then ()=>
       console.log "all media infos was saved to db"
