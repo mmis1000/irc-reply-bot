@@ -35,7 +35,8 @@ class CommandNslookup extends Icommand
           i++
         
         commandManager.sendPv sender, textRouter, "Lookup : Results for #{target} in type #{type} :"
-        commandManager.sendPv sender, textRouter, addresses
+        addresses.forEach (address)->
+          commandManager.sendPv sender, textRouter, address
         done()
         return
     catch err
