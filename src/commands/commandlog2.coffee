@@ -20,6 +20,7 @@ class CommandLogs extends Icommand
     db = mongoose.connection;
     db.on 'error', @_onDbConnect.bind @
     db.once 'open', @_onDbConnect.bind @, null
+    db.setMaxListeners(Infinity );
     
     console.log @dbpath, "#{@collectionName}Trigger"
     @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
@@ -245,6 +246,12 @@ class CommandLogs extends Icommand
   
   handleRaw: (sender, type, content, textRouter, commandManager)->
     return false  if not (type in ["message", "outputMessage"])
+    
+    if not @Message
+      console.warn 'not able to connect to mongodb, throttle log writing'
+      @db.once 'open', ()=>
+        @handleRaw arguments...
+      return
     
     if type is "message"
     
