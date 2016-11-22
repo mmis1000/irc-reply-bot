@@ -26,12 +26,12 @@ class CommandLogs extends Icommand
     @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
     
   _onDbConnect: (err, cb)=>
-    @gfs = Grid mongoose.connection.db, mongoose.mongo
-    
     if err
       console.error 'db error : '
       console.error err
       return
+      
+    @gfs = Grid mongoose.connection.db, mongoose.mongo
     
     fileSchemaFactory = require './log_modules/file_schema_factory'
     FileSchema = fileSchemaFactory mongoose
