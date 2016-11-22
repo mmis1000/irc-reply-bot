@@ -19,9 +19,17 @@ class TelegramRouter extends TextRouter
   _init: ()->
     console.log "initing telegram with token #{@token}"
     @api = new Telegram @token
-    @api.startPolling 40
-    @api.getMe (err, res)=>
-      return @emit 'error', err if err
+    @api.getMe meHandle = (err, res)=>
+      if err
+        console.error '[telegram] fail to get self info, retry after 1 minute: '
+        console.error err
+        
+        setTimeout ()=>
+          @api.getMe meHandle
+        , 60 * 1000
+        return
+      @api.startPolling 40
+      
       if @userPostFix
         @setSelfName res.username + '@' + @userPostFix
       else
