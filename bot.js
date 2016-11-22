@@ -193,13 +193,14 @@ Bot.prototype._setExitHandle = function () {
 }
 
 Bot.prototype._beforeExit = function (cb) {
-  this.manager.handleRaw(null, 'exit', null, this.router);
+  /* this.manager.handleRaw(null, 'exit', null, this.router);
   console.log('disconnecting from server...');
   //setTimeout(function () {}, 100000000);
+  
   this.router.disconnect('good bye!', function () {
-    console.log('disconnected from server!');
-    cb();
-  });
+    console.log('disconnected from server!');*/
+    cb();/*
+  });*/
 };
 
 new Bot();
