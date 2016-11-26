@@ -267,13 +267,22 @@ createBotMessage = (message, telegramRouter)->
       length: message.sticker.file_size,
       photoSize: [message.sticker.width, message.sticker.height]
     }
-    fileThumb = new TelegramFile message.sticker.thumb.file_id, telegramRouter.api, {
-      MIME: 'image/webp',
-      length: message.sticker.thumb.file_size,
-      photoSize: [message.sticker.thumb.width, message.sticker.thumb.height],
-      isThumb: true
-    }
-    fileThumb.meta = {overrides:{MIME: 'image/webp'}}
+    if message.sticker.thumb
+      fileThumb = new TelegramFile message.sticker.thumb.file_id, telegramRouter.api, {
+        MIME: 'image/webp',
+        length: message.sticker.thumb.file_size,
+        photoSize: [message.sticker.thumb.width, message.sticker.thumb.height],
+        isThumb: true
+      }
+      fileThumb.meta = {overrides:{MIME: 'image/webp'}}
+    else
+      fileThumb = new TelegramFile message.sticker.file_id, telegramRouter.api, {
+        MIME: 'image/webp',
+        length: message.sticker.file_size,
+        photoSize: [message.sticker.width, message.sticker.height]
+        isThumb: true
+      }
+      
     
     media = new Media {
       id : "#{message.sticker.file_id}@telegram-sticker",
@@ -301,11 +310,12 @@ createBotMessage = (message, telegramRouter)->
     botMessage = new Message (message.caption or "((tg-photo:#{message.photo[0].file_id}))"), [media], true, false, (!!message.caption)
     
   if message.video
-    videoThumb = new TelegramFile message.video.thumb.file_id, telegramRouter.api, {
-      length: message.video.thumb.file_size,
-      photoSize: [message.video.thumb.width, message.video.thumb.height],
-      isThumb: true
-    }
+    if message.video.thumb
+      videoThumb = new TelegramFile message.video.thumb.file_id, telegramRouter.api, {
+        length: message.video.thumb.file_size,
+        photoSize: [message.video.thumb.width, message.video.thumb.height],
+        isThumb: true
+      }
     video = new TelegramFile message.video.file_id, telegramRouter.api, {
       length: message.video.file_size,
       photoSize: [message.video.width, message.video.height],
@@ -315,8 +325,10 @@ createBotMessage = (message, telegramRouter)->
       id : "#{message.video.file_id}@telegram-video",
       role : 'video',
       placeHolderText : '((video))',
-      files: [video, videoThumb]
+      files: [video]
     }
+    if videoThumb
+      media.files.push videoThumb
     botMessage = new Message (message.caption or "((tg-video:#{message.video.file_id}))"), [media], true, false, (!!message.caption)
   
   if message.audio
