@@ -6,6 +6,7 @@ class IrcRouter extends TextRouter
     @_timeoutId = null;
     @_timeoutInterval = null;
     @_init()
+    @routerIdentifier = ''
     
   enableFloodProtection: (floodProtection)->
     @client.activateFloodProtection floodProtection
@@ -140,7 +141,7 @@ class IrcRouter extends TextRouter
     @client.disconnect msg, cb
   
   getRouterIdentifier : ()->
-    return @identifier or ''
+    return @routerIdentifier or ''
   
   isCommand: (text)->
     return 0 is text.indexOf @identifier

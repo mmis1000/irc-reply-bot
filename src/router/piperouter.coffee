@@ -43,4 +43,5 @@ class PipeRouter extends IRouter
   
   getRouterIdentifier : ()->
     return null
+
 module.exports = PipeRouter

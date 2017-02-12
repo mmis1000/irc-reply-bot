@@ -44,11 +44,17 @@ class TextRouter extends IRouter
         
         Q.all files
       .then (results)=>
+        if message.asContentText
+          @output message.text
         Q.all results.map (i)=> 
           @output i.data.link, to
+      .catch (err)->
+        console.error err.message or err.stack or '' + err
+        
     else
       @output message.text, to
-    
+    true
+  
   input : (message, from, to, channal)->
     sender = new Senter from, to, message, channal
     @emit "input", message, sender
