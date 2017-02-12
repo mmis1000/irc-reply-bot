@@ -40,7 +40,7 @@ class TelegramFile extends BaseFile
       # console.log res
       @api.getFileContent res.file_path, (err, res, body)=>
         if err or not body
-          return deferred.reject err or now Error 'no content found'
+          return deferred.reject err or new Error 'no content found'
         
         @MIME = res.headers["content-type"]
         if @meta.overrides and @meta.overrides.MIME
