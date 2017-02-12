@@ -4,6 +4,8 @@ Ban = require './core/ban.js'
 Icommand = require './icommand'
 Message = require './models/message'
 TraceRouter = require './router/tracerouter'
+PipeRouter = require './router/piperouter'
+Sender = require './senter'
 co = require 'co'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
@@ -239,12 +241,22 @@ class CommandManager extends EventEmitter
    * @method
    * @deprecated
   ###
-  _sendToPlace: (textRouter, from, to, channel, message)->
+  _sendToPlace: (textRouter, from, to, channel, text)->
     if 0 == to.search /^#/
       target = to
     else
       target = from
-    textRouter.output(message, target)
+    # textRouter.output(message, target)
+    
+    if Array.isArray text
+      text = text.join '\n'
+    
+    sender = new Sender from, to, text, []
+    message = new Message text, [], true, true, true
+    
+    console.warn (new Error '[deprcated] _sendToPlace').stack
+    
+    @sendMessage sender, textRouter, message, target
   
   send: (sender, router, text)->
     message = new Message text, [], true, true, true
@@ -265,6 +277,35 @@ class CommandManager extends EventEmitter
     
     for target in targets
       @sendMessage sender, router, message, target
+  
+  ###*
+   * test if we can send message to target through this router. 
+   * If can't, return the correct one.
+  ###
+  selectRouter: (target, currentRouter)->
+    return currentRouter if (currentRouter instanceof PipeRouter)
+    return currentRouter if (currentRouter instanceof TraceRouter)
+    
+    target = target.split /@/g
+    
+    if not target[1]
+      targetId = ''
+    else
+      targetId = target[target.length - 1]
+    
+    routerId = currentRouter.getRouterIdentifier() or ''
+    
+    if targetId is routerId
+      return currentRouter
+    
+    for router in @routers
+      routerId = router.getRouterIdentifier() or ''
+      if targetId is routerId
+        return router
+    # if we were unable to handle it, just return
+    console.warn "unable to find target router #{targetId}"
+    currentRouter
+    
     
   sendMessage: (sender, router, message, target)->
     if not target
@@ -272,6 +313,8 @@ class CommandManager extends EventEmitter
         target = sender.target
       else
         target = sender.sender
+    
+    router = @selectRouter target, router
     
     res = router.outputMessage message, target
     
