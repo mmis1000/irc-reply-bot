@@ -171,14 +171,16 @@ class TelegramRouter extends TextRouter
         return TextRouter::outputMessage.call this, arguments...
       else
         originalInfo = message.meta["_#{@getRouterIdentifier()}"]
+        toTargetId = (i)-> 
+          (i.slice 1).replace /@.+$/, ''
         if originalInfo.sticker
-          promise = @api.sendSticker originalInfo.chat.id, originalInfo.sticker.file_id
+          promise = @api.sendSticker (toTargetId to), originalInfo.sticker.file_id
         else if originalInfo.photo
-          promise = @api.sendPhoto originalInfo.chat.id, originalInfo.photo[originalInfo.photo.length - 1].file_id
+          promise = @api.sendPhoto (toTargetId to), originalInfo.photo[originalInfo.photo.length - 1].file_id
         else if originalInfo.audio
-          promise = @api.sendAudio originalInfo.chat.id, originalInfo.audio.file_id
+          promise = @api.sendAudio (toTargetId to), originalInfo.audio.file_id
         else if originalInfo.video
-          promise = @api.sendVideo originalInfo.chat.id, originalInfo.video.file_id
+          promise = @api.sendVideo (toTargetId to), originalInfo.video.file_id
         
         if promise
           return promise.then (res)=>
@@ -267,6 +269,8 @@ createBotMessage = (message, telegramRouter)->
       length: message.sticker.file_size,
       photoSize: [message.sticker.width, message.sticker.height]
     }
+    file.meta = {overrides:{MIME: 'image/webp'}}
+    
     if message.sticker.thumb
       fileThumb = new TelegramFile message.sticker.thumb.file_id, telegramRouter.api, {
         MIME: 'image/webp',
@@ -282,6 +286,7 @@ createBotMessage = (message, telegramRouter)->
         photoSize: [message.sticker.width, message.sticker.height]
         isThumb: true
       }
+      fileThumb.meta = {overrides:{MIME: 'image/webp'}}
       
     
     media = new Media {
@@ -294,10 +299,13 @@ createBotMessage = (message, telegramRouter)->
   
   if message.photo
     files = message.photo.map (data)=>
-      new TelegramFile data.file_id, telegramRouter.api, {
+      photo = new TelegramFile data.file_id, telegramRouter.api, {
         length: data.file_size,
         photoSize: [data.width, data.height]
       }
+      photo.meta = {overrides:{MIME: 'image/webp'}}
+      photo
+    
     files[0].isThumb = true;
     # console.log files
     
