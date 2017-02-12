@@ -4,10 +4,18 @@ class CommandEchoReply extends Icommand
   constructor: ()->
     
   handle: (sender ,text, args, storage, textRouter, commandManager, formBinding, originalMessage)->
-    if args.length != 1
+    if args.length > 2
       return false
     
+    
+      
+    
     if originalMessage.replyTo
+      if args.length is 2
+        if not args[1].match /^#.+/i
+          return false
+        target = args[1]
+        sender.target = target
       commandManager.sendMessage sender, textRouter, originalMessage.replyTo.message
     else
       commandManager.send sender, textRouter, "you didn't reply to a message yet"
