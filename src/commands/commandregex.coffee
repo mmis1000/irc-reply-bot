@@ -79,8 +79,9 @@ class CommandRegex extends Icommand
       referredBy = sender.sender
     
     if content.replyTo
+      result = @_parseCommand content.text
+      sayer = content.replyTo.sender.sender
       referredBy = sender.sender
-      sayer = sender.sender
     
     #console.log result, @lastMessages[sayer], maybeACommand
     
