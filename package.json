@@ -39,7 +39,7 @@
     "grunt-contrib-uglify": "~0.5.0"
   },
   "scripts": {
-    "start": "node bot.js"
+    "start": "if [ $NO_LOADER = \"1\" ]; then node bot.js; else node index.js; fi"
   },
   "repository": {
     "type": "git",
