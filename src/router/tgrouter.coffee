@@ -5,6 +5,8 @@ Senter = require '../senter.js'
 Message = require '../models/message'
 Media = require '../models/media'
 TelegramFile = require '../models/telegram_file'
+User = require '../models/user'
+co = require 'co'
 
 class TelegramRouter extends TextRouter
   constructor: (@token, @channelPostFix = 'tg', @userPostFix = 'tg', @requireTag = false)->
@@ -15,6 +17,10 @@ class TelegramRouter extends TextRouter
     @messageBuffer = {}
     @bufferTimeout = 1000
     @bufferTimeoutId = null
+    
+    @once 'manager_register', (manager)=>
+      @manager = manager
+      @userInfoCache = manager.userInfoCache
     
   _init: ()->
     console.log "initing telegram with token #{@token}"
@@ -74,20 +80,29 @@ class TelegramRouter extends TextRouter
           @output message, to, _message_id, channelName, nobuffer, textFormat
         
         botMessage = createBotMessage message, @
+        
         if botMessage
-          if message.text
-            console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
           
-          if message.reply_to_message
-            targetMessage = createBotMessage message.reply_to_message, @
-            if targetMessage
-              botMessage.replyTo = {};
-              botMessage.replyTo.message = targetMessage
-              botMessage.replyTo.sender = createSenderFromMessage message.reply_to_message, @
-          if message.forward_from
-            botMessage.forwardFrom = createSenderFromUser message.forward_from, @
+          co ()=>
+            if message.text
+              console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
             
-          @inputMessage botMessage, userName, channelId, [], clonedRouter
+            if message.reply_to_message
+              targetMessage = createBotMessage message.reply_to_message, @
+              if targetMessage
+                botMessage.replyTo = {};
+                botMessage.replyTo.message = targetMessage
+                botMessage.replyTo.sender = yield createSenderFromMessage message.reply_to_message, @
+            if message.forward_from
+              botMessage.forwardFrom = yield createSenderFromUser message.forward_from, @
+              
+            sender = yield createSenderFromMessage message, @
+            
+            @emit "message", botMessage, sender, clonedRouter
+          .catch (e)->
+            console.log(e)
+            
+          # @inputMessage botMessage, userName, channelId, [], clonedRouter
           
         
       @on 'output', (m, target, replyId, textFormat)=>
@@ -385,31 +400,123 @@ createBotMessage = (message, telegramRouter)->
   return botMessage
 
 createSenderFromMessage = (message, telegramRouter)->
-  channelId = "#" + message.chat.id.toString()
-  if telegramRouter.channelPostFix
-    channelId += "@" + telegramRouter.channelPostFix
-  userName = message.from.username
-  userName = userName || "undefined_#{message.from.id}"
-
-  if telegramRouter.channelPostFix
-    userName += "@" + telegramRouter.channelPostFix
-
-  sender = new Senter userName, channelId, message, []
-  sender
+  co ()->
+    api = telegramRouter.api
+    
+    try
+      channelInfo = new User "##{message.chat.id}", {
+        images: []
+        aliases: if message.chat.username then  [ message.chat.username ]else []
+        nicknames: if message.chat.username then  [ '@' + message.chat.username ] else []
+        lastName: message.chat.last_name or null
+        firstName: message.chat.first_name or message.chat.title or null
+        profileUrl: if message.chat.username then  "https://t.me/#{message.chat.username}" else null
+      }
+      
+      if telegramRouter.channelPostFix
+        channelInfo.id += '@' + telegramRouter.channelPostFix
+        channelInfo.aliases[0] += '@' + telegramRouter.channelPostFix if channelInfo.aliases[0]
+    catch e
+      console.error e.stack
+    
+    channelId = "#" + message.chat.id.toString()
+    if telegramRouter.channelPostFix
+      channelId += "@" + telegramRouter.channelPostFix
+    
+    try
+      userPhotoMedias = telegramRouter.userInfoCache.get message.from.id
+      if not userPhotoMedias
+        userPhoto = yield telegramRouter.api.getUserProfilePhotos(message.from.id, null)
+        if userPhoto.total_count > 0
+          userPhotoMedias = userPhoto.photos
+          .map createMediaFromPhotoList
+          .map (media, index)-> 
+            media.role = 'avatar'
+            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+            media
+        else
+          userPhotoMedias = []
+        telegramRouter.userInfoCache.set message.from.id, userPhotoMedias
+      # else
+      #   console.log 'cache hit, read image from cache'
+      
+      userInfo = new User "undefined_#{message.from.id}", {
+        images: userPhotoMedias
+        aliases: if message.from.username then [ message.from.username ] else []
+        nicknames: if message.from.username then [ '@' + message.from.username ] else []
+        lastName: message.from.last_name or null
+        firstName: message.from.first_name or null
+        profileUrl: if message.from.username then "https://t.me/#{message.from.username}" else null
+      }
+      
+      if telegramRouter.userPostFix
+        userInfo.id += '@' + telegramRouter.userPostFix
+        userInfo.aliases[0] += '@' + telegramRouter.userPostFix if userInfo.aliases[0]
+    catch e
+      console.error e.stack
+    
+    userName = message.from.username
+    userName = userName || "undefined_#{message.from.id}"
+  
+    if telegramRouter.userPostFix
+      userName += "@" + telegramRouter.userPostFix
+  
+    sender = new Senter userName, channelId, message, []
+    sender.senderInfo = userInfo
+    sender.targetInfo = channelInfo
+    
+    # console.log sender
+    
+    sender
 
 createSenderFromUser = (user, telegramRouter)->
-  channelId = "#__unknown__"
-  if telegramRouter.channelPostFix
-    channelId += "@" + telegramRouter.channelPostFix
-
-  userName = user.username
-  userName = userName || "undefined_#{user.id}"
-
-  if telegramRouter.channelPostFix
-    userName += "@" + telegramRouter.channelPostFix
-
-  sender = new Senter userName, channelId, null, []
-  sender
+  co ()->
+    try
+      userPhotoMedias = telegramRouter.userInfoCache.get user.id
+      if not userPhotoMedias
+        userPhoto = yield telegramRouter.api.getUserProfilePhotos(user.id, null)
+        if userPhoto.total_count > 0
+          userPhotoMedias = userPhoto.photos
+          .map createMediaFromPhotoList
+          .map (media)-> 
+            media.role = 'avatar'
+            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+            media
+        else
+          userPhotoMedias = []
+        telegramRouter.userInfoCache.set user.id, userPhotoMedias
+      # else
+      #   console.log 'cache hit, read image from cache'
+      
+      userInfo = new User "undefined_#{user.id}", {
+        images: userPhotoMedias
+        aliases: if user.username then [ user.username ] else []
+        nicknames: if user.username then [ '@' + user.username ] else []
+        lastName: user.last_name or null
+        firstName: user.first_name or null
+        profileUrl: if user.username then "https://t.me/#{user.username}" else null
+      }
+      
+      if telegramRouter.userPostFix
+        userInfo.id += '@' + telegramRouter.userPostFix
+        userInfo.aliases[0] += '@' + telegramRouter.userPostFix if userInfo.aliases[0]
+    catch e
+      console.error e.stack
+  
+    channelId = "#__unknown__"
+    if telegramRouter.channelPostFix
+      channelId += "@" + telegramRouter.channelPostFix
+  
+    userName = user.username
+    userName = userName || "undefined_#{user.id}"
+  
+    if telegramRouter.channelPostFix
+      userName += "@" + telegramRouter.channelPostFix
+  
+    sender = new Senter userName, channelId, null, []
+    sender.senderInfo = userInfo
+    
+    sender
 
 class TelegramText
   @toHTML: (text, entities)->
@@ -525,5 +632,24 @@ class TelegramText
           
         
     chars.join ''
+
+createMediaFromPhotoList = (list, api)->
+  files = list.map (data)=>
+    photo = new TelegramFile data.file_id, api, {
+      length: data.file_size,
+      photoSize: [data.width, data.height]
+    }
+    photo.meta = {overrides:{MIME: 'image/webp'}}
+    photo
+  
+  files[0].isThumb = true;
+  # console.log files
+  
+  media = new Media {
+    id : "#{list[0].file_id}@telegram-photo",
+    role : 'photo',
+    placeHolderText : '((photo))',
+    files: files
+  }
 
 module.exports = TelegramRouter

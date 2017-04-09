@@ -6,6 +6,7 @@ Message = require './models/message'
 TraceRouter = require './router/tracerouter'
 PipeRouter = require './router/piperouter'
 Sender = require './senter'
+LRU = require 'lru-cache'
 co = require 'co'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
@@ -20,6 +21,8 @@ class CommandManager extends EventEmitter
     
     @sessionLength = 10 * 60 * 1000
     @sessionExpire = {}
+    
+    @userInfoCache = LRU { max: 400, maxAge: 1000 * 60 * 60 * 2 }
     
     @defaultOps = []
     
@@ -490,7 +493,9 @@ class CommandManager extends EventEmitter
     
     textRouter.on "rpl_raw", (reply, router = textRouter)=>
       @handleRaw null, "raw", reply, router
-  
+    
+    textRouter.emit 'manager_register', @
+    
   toDisplayName: (sender)->
     if sender and 'object' is typeof sender
       sender = sender.sender

@@ -208,4 +208,10 @@ TelegramAPI.prototype.getFileContent = function getFileContent(path, cb) {
         cb(err, response, body);
     })
 }
+TelegramAPI.prototype.getUserProfilePhotos = function getUserProfilePhotos(user_id ,cb, datas) {
+    datas = typeof datas === "object" ? datas : {};
+    datas.user_id = user_id;
+    return this._invoke('getUserProfilePhotos', datas , cb);
+}
+
 module.exports = TelegramAPI

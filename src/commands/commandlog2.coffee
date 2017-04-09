@@ -4,6 +4,7 @@ moment = require 'moment'
 mubsub = require 'mubsub'
 Grid = require 'gridfs-stream'
 Q = require 'q'
+LRU = require 'lru-cache'
 
 escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
@@ -14,6 +15,8 @@ class CommandLogs extends Icommand
     @Message = null
     
     @MessageChannel = null;
+    
+    @userInfoCache = LRU { max: 400, maxAge: 1000 * 60 * 60 * 2 }
     
     mongoose.connect @dbpath
     
@@ -44,6 +47,10 @@ class CommandLogs extends Icommand
     messageSchemaFactory = require './log_modules/message_schema_factory'
     MessageSchema = messageSchemaFactory mongoose, @timezone, @locale, 'Medias'
     @Message =  mongoose.model 'Message', MessageSchema
+    
+    userSchemaFactory = require './log_modules/user_schema_factory'
+    UserSchema = userSchemaFactory mongoose, 'Medias'
+    @User =  mongoose.model 'User', UserSchema
     
   triggerDbUpdate: (obj)->
     #console.log('trigger %j', obj)
@@ -254,7 +261,11 @@ class CommandLogs extends Icommand
       return
     
     if type is "message"
-    
+      @_saveUser sender.senderInfo if sender.senderInfo
+      @_saveUser sender.targetInfo if sender.targetInfo
+      @_saveUser sender.channelInfo if sender.channelInfo
+      
+      
       onChannel = 0 is sender.target.search /#/
       date = content.meta.time or new Date
       
@@ -382,6 +393,7 @@ class CommandLogs extends Icommand
         contentSrc: file.UID
       }, {
         upsert: true
+        new: true
       }
       query.exec()
     .then (file)->
@@ -399,6 +411,7 @@ class CommandLogs extends Icommand
         console.log "media #{media.id} existed. skipping..."
         defered.resolve doc
         throw new Error 'doc exist'
+      
       time = media.meta.time
       delete media.meta.time
       @Media.findOneAndUpdate {
@@ -412,6 +425,7 @@ class CommandLogs extends Icommand
         meta: media.meta
       }, {
         upsert: true
+        new: true
       }
       .exec()
     .then (media)->
@@ -454,4 +468,52 @@ class CommandLogs extends Icommand
       console.log "message was saved to db"
     .catch (err)->
       console.error err.stack
+      
+  _saveUser: (userInfo)->
+    if @userInfoCache.get userInfo.id
+      # console.log "userInfo for #{userInfo.id} didn't be updated because it is in cache"
+      return
+    
+    @userInfoCache.set userInfo.id, userInfo
+    
+    user = new @User {
+      _id: userInfo.id
+      images: []
+      ids: [userInfo.id].concat userInfo.aliases
+      nicknames: userInfo.nicknames
+      
+      firstName: userInfo.firstName
+      midName: userInfo.midName
+      lastName: userInfo.lastName
+      
+      profileUrl: userInfo.profileUrl
+    }
+    
+    # console.log user
+    
+    mediasPromise = Q.all userInfo.images.map (media)=>
+      date = new Date
+      media.meta = media.meta or {}
+      media.meta.time = media.meta.time or date
+      @_saveMedia media
+    
+    mediasPromise.then (medias)=>
+      user.images = medias.map (media)->
+        # console.log media
+        media._id
+      @User.findOneAndUpdate {
+        _id: user.id
+      }, user, {
+        upsert: true
+        new: true
+      }
+      .exec()
+    .then (user)->
+      console.log "userInfo for #{user._id} have been updated"
+    .catch (err)->
+      console.error "error during update user info for #{userInfo.id}"
+      console.error err
+      console.error err.stack
+      
+    
 module.exports = CommandLogs
