@@ -15,7 +15,7 @@ getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", c
     messageId : { type : String, index : true }
     
     # if the text is meaningful and should be display along with medias
-    asText : { type : Boolean, index : true }
+    asText: { type : Boolean, index : true }
     
     isOnChannel : Boolean
     medias: [{ type: String, ref: mediaCollectionName }]
