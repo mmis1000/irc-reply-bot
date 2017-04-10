@@ -508,8 +508,9 @@ class CommandLogs extends Icommand
         new: true
       }
       .exec()
-    .then (user)->
+    .then (user)=>
       console.log "userInfo for #{user._id} have been updated"
+      @MessageChannel.publish('user-update', {'data' : user.toObject()});
     .catch (err)->
       console.error "error during update user info for #{userInfo.id}"
       console.error err
