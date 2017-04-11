@@ -45,4 +45,6 @@ class IRouter extends Defer
   
   parseArgs: (str)-> throw new Error 'not implement'
   
+  getSelfInfo: ()->
+  
 module.exports = IRouter

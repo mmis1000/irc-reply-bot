@@ -108,4 +108,6 @@ class TextRouter extends IRouter
   addResult: ()->;
   addError: ()->;
   
+  getSelfInfo: ()-> Promise.resolve null
+
 module.exports = TextRouter

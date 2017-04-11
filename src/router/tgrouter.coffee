@@ -271,7 +271,47 @@ class TelegramRouter extends TextRouter
         return true
     else
       true
-
+  
+  getSelfInfo: ()->
+    co ()=>
+      cachedBotUser = @userInfoCache.get @_botInfo.id
+      if cachedBotUser
+        return cachedBotUser
+      
+      @_botInfo = botUser = yield @api.getMe()
+      
+      userPhotoMedias = @userAvatarCache.get botUser.id
+      
+      if not userPhotoMedias
+        userPhoto = yield @api.getUserProfilePhotos(botUser.id, null)
+        if userPhoto.total_count > 0
+          userPhotoMedias = userPhoto.photos
+          .map createMediaFromPhotoList
+          .map (media, index)-> 
+            media.role = 'avatar'
+            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+            media
+        else
+          userPhotoMedias = []
+        @userAvatarCache.set botUser.id, userPhotoMedias
+      
+      userInfo = new User "undefined_#{botUser.id}", {
+        images: userPhotoMedias
+        aliases: if botUser.username then [ botUser.username ] else []
+        nicknames: if botUser.username then [ '@' + botUser.username ] else []
+        lastName: botUser.last_name or null
+        firstName: botUser.first_name or null
+        profileUrl: if botUser.username then "https://t.me/#{botUser.username}" else null
+      }
+      
+      if @userPostFix
+        userInfo.id += '@' + @userPostFix
+        userInfo.aliases[0] += '@' + @userPostFix if userInfo.aliases[0]
+      
+      @userInfoCache.set userInfo.id, userInfo
+      
+      return userInfo
+      
 createBotMessage = (message, telegramRouter)->
   
   if message.text
@@ -682,5 +722,6 @@ createMediaFromPhotoList = (list, api)->
     placeHolderText : '((photo))',
     files: files
   }
-
+    
+  
 module.exports = TelegramRouter
