@@ -261,9 +261,9 @@ class CommandLogs extends Icommand
       return
     
     if type is "message"
-      @_saveUser sender.senderInfo if sender.senderInfo
-      @_saveUser sender.targetInfo if sender.targetInfo
-      @_saveUser sender.channelInfo if sender.channelInfo
+      @_saveUser sender.senderInfo, commandManager if sender.senderInfo
+      @_saveUser sender.targetInfo, commandManager if sender.targetInfo
+      @_saveUser sender.channelInfo, commandManager if sender.channelInfo
       
       
       onChannel = 0 is sender.target.search /#/
@@ -469,10 +469,11 @@ class CommandLogs extends Icommand
     .catch (err)->
       console.error err.stack
       
-  _saveUser: (userInfo)->
+  _saveUser: (userInfo, manager)->
     if @userInfoCache.get userInfo.id
       # console.log "userInfo for #{userInfo.id} didn't be updated because it is in cache"
-      return
+      if (@userInfoCache.get userInfo.id) is manager.userInfoCache.get userInfo.id
+        return
     
     @userInfoCache.set userInfo.id, userInfo
     

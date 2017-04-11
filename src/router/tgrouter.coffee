@@ -6,6 +6,7 @@ Message = require '../models/message'
 Media = require '../models/media'
 TelegramFile = require '../models/telegram_file'
 User = require '../models/user'
+LRU = require 'lru-cache'
 co = require 'co'
 
 class TelegramRouter extends TextRouter
@@ -17,6 +18,8 @@ class TelegramRouter extends TextRouter
     @messageBuffer = {}
     @bufferTimeout = 1000
     @bufferTimeoutId = null
+    
+    @userAvatarCache = LRU { max: 400, maxAge: 1000 * 60 * 60 * 2 }
     
     @once 'manager_register', (manager)=>
       @manager = manager
@@ -416,6 +419,15 @@ createSenderFromMessage = (message, telegramRouter)->
       if telegramRouter.channelPostFix
         channelInfo.id += '@' + telegramRouter.channelPostFix
         channelInfo.aliases[0] += '@' + telegramRouter.channelPostFix if channelInfo.aliases[0]
+      
+      cachedChannel = telegramRouter.userInfoCache.get channelInfo.id
+      if not cachedChannel
+        telegramRouter.userInfoCache.set channelInfo.id, channelInfo
+      else
+        compareStr = JSON.stringify(channelInfo);
+        compareStr1 = JSON.stringify(cachedChannel);
+        if compareStr isnt compareStr1
+          telegramRouter.userInfoCache.set channelInfo.id, channelInfo
     catch e
       console.error e.stack
     
@@ -424,7 +436,7 @@ createSenderFromMessage = (message, telegramRouter)->
       channelId += "@" + telegramRouter.channelPostFix
     
     try
-      userPhotoMedias = telegramRouter.userInfoCache.get message.from.id
+      userPhotoMedias = telegramRouter.userAvatarCache.get message.from.id
       if not userPhotoMedias
         userPhoto = yield telegramRouter.api.getUserProfilePhotos(message.from.id, null)
         if userPhoto.total_count > 0
@@ -436,7 +448,7 @@ createSenderFromMessage = (message, telegramRouter)->
             media
         else
           userPhotoMedias = []
-        telegramRouter.userInfoCache.set message.from.id, userPhotoMedias
+        telegramRouter.userAvatarCache.set message.from.id, userPhotoMedias
       # else
       #   console.log 'cache hit, read image from cache'
       
@@ -452,6 +464,15 @@ createSenderFromMessage = (message, telegramRouter)->
       if telegramRouter.userPostFix
         userInfo.id += '@' + telegramRouter.userPostFix
         userInfo.aliases[0] += '@' + telegramRouter.userPostFix if userInfo.aliases[0]
+      
+      cachedUser = telegramRouter.userInfoCache.get userInfo.id
+      if not cachedUser
+        telegramRouter.userInfoCache.set userInfo.id, userInfo
+      else
+        compareStr = JSON.stringify(userInfo);
+        compareStr1 = JSON.stringify(cachedUser);
+        if compareStr isnt compareStr1
+          telegramRouter.userInfoCache.set userInfo.id, userInfo
     catch e
       console.error e.stack
     
@@ -472,7 +493,7 @@ createSenderFromMessage = (message, telegramRouter)->
 createSenderFromUser = (user, telegramRouter)->
   co ()->
     try
-      userPhotoMedias = telegramRouter.userInfoCache.get user.id
+      userPhotoMedias = telegramRouter.userAvatarCache.get user.id
       if not userPhotoMedias
         userPhoto = yield telegramRouter.api.getUserProfilePhotos(user.id, null)
         if userPhoto.total_count > 0
@@ -484,7 +505,7 @@ createSenderFromUser = (user, telegramRouter)->
             media
         else
           userPhotoMedias = []
-        telegramRouter.userInfoCache.set user.id, userPhotoMedias
+        telegramRouter.userAvatarCache.set user.id, userPhotoMedias
       # else
       #   console.log 'cache hit, read image from cache'
       
@@ -500,6 +521,16 @@ createSenderFromUser = (user, telegramRouter)->
       if telegramRouter.userPostFix
         userInfo.id += '@' + telegramRouter.userPostFix
         userInfo.aliases[0] += '@' + telegramRouter.userPostFix if userInfo.aliases[0]
+      
+      cachedUser = telegramRouter.userInfoCache.get userInfo.id
+      if not cachedUser
+        telegramRouter.userInfoCache.set userInfo.id, userInfo
+      else
+        compareStr = JSON.stringify(userInfo);
+        compareStr1 = JSON.stringify(cachedUser);
+        if compareStr isnt compareStr1
+          telegramRouter.userInfoCache.set userInfo.id, userInfo
+      
     catch e
       console.error e.stack
   

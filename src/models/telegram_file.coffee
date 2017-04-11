@@ -51,5 +51,10 @@ class TelegramFile extends BaseFile
         deferred.resolve @
     
     deferred.promise
-
+  toJSON: ()->
+    newItem = {}
+    for key, value of @
+      if (@hasOwnProperty key) and key isnt "api"
+        newItem[key] = value
+    newItem
 module.exports = TelegramFile
