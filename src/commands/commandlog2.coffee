@@ -49,7 +49,12 @@ class CommandLogs extends Icommand
     db.setMaxListeners(Infinity );
     
     console.log @dbpath, "#{@collectionName}Trigger"
-    @MessageChannel = (mubsub @dbpath).channel "#{@collectionName}Trigger"
+    
+    @MessageChannelClinet = (mubsub @dbpath)
+    @MessageChannel = @MessageChannel.channel "#{@collectionName}Trigger"
+    
+    @MessageChannelClinet.on 'error', console.error
+    @MessageChannel.on 'error', console.error
     
   _onDbConnect: (err, cb)=>
     if err
