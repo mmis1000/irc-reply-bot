@@ -51,7 +51,7 @@ class CommandLogs extends Icommand
     console.log @dbpath, "#{@collectionName}Trigger"
     
     @MessageChannelClinet = (mubsub @dbpath)
-    @MessageChannel = @MessageChannel.channel "#{@collectionName}Trigger"
+    @MessageChannel = @MessageChannelClinet.channel "#{@collectionName}Trigger"
     
     @MessageChannelClinet.on 'error', console.error
     @MessageChannel.on 'error', console.error
