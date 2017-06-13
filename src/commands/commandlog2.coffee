@@ -18,11 +18,34 @@ class CommandLogs extends Icommand
     
     @userInfoCache = LRU { max: 400, maxAge: 1000 * 60 * 60 * 2 }
     
-    mongoose.connect @dbpath
     
     db = mongoose.connection;
-    db.on 'error', @_onDbConnect.bind @
-    db.once 'open', @_onDbConnect.bind @, null
+    
+    db.on 'connecting', ->
+      console.log 'connecting to MongoDB...'
+      return
+    db.on 'error', (error) ->
+      console.error 'Error in MongoDb connection: ' + error
+      mongoose.disconnect()
+      return
+    db.on 'connected', ->
+      console.log 'MongoDB connected!'
+      return
+    db.on 'reconnected', ->
+      console.log 'MongoDB reconnected!'
+      return
+    db.on 'disconnected', ->
+      console.log 'MongoDB disconnected!'
+      mongoose.connect @dbpath, server: auto_reconnect: true
+      return
+    db.once 'open', =>
+      console.log 'MongoDB connection opened!'
+      @_onDbConnect();
+      return
+    
+    mongoose.connect @dbpath, server: auto_reconnect: true
+    
+    # db.once 'open', @_onDbConnect.bind @, null
     db.setMaxListeners(Infinity );
     
     console.log @dbpath, "#{@collectionName}Trigger"
