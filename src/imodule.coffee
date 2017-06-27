@@ -61,7 +61,7 @@ class Imodule extends Icommand
     if not @commandMap[subcommand]
       return false
     prefix = commandManager.parseArgs text
-    prefix = commandManager.identifier + prefix[0] + " " + prefix[2]
+    prefix = textRouter.getIdentifier() + prefix[0] + " " + prefix[2]
     text = @getSubHelpMessage prefix, subcommand
     commandManager.send sender, textRouter, text
     
