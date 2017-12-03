@@ -286,7 +286,8 @@ class TelegramRouter extends TextRouter
         userPhoto = yield @api.getUserProfilePhotos(botUser.id, null)
         if userPhoto.total_count > 0
           userPhotoMedias = userPhoto.photos
-          .map createMediaFromPhotoList
+          .map (list)=>
+            createMediaFromPhotoList list, @api
           .map (media, index)-> 
             media.role = 'avatar'
             media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
@@ -481,7 +482,8 @@ createSenderFromMessage = (message, telegramRouter)->
         userPhoto = yield telegramRouter.api.getUserProfilePhotos(message.from.id, null)
         if userPhoto.total_count > 0
           userPhotoMedias = userPhoto.photos
-          .map createMediaFromPhotoList
+          .map (list)->
+            createMediaFromPhotoList list, telegramRouter.api
           .map (media, index)-> 
             media.role = 'avatar'
             media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
@@ -538,7 +540,8 @@ createSenderFromUser = (user, telegramRouter)->
         userPhoto = yield telegramRouter.api.getUserProfilePhotos(user.id, null)
         if userPhoto.total_count > 0
           userPhotoMedias = userPhoto.photos
-          .map createMediaFromPhotoList
+          .map (list)->
+            createMediaFromPhotoList list, telegramRouter.api
           .map (media)-> 
             media.role = 'avatar'
             media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"

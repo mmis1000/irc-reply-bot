@@ -528,7 +528,12 @@ class CommandLogs extends Icommand
       date = new Date
       media.meta = media.meta or {}
       media.meta.time = media.meta.time or date
-      @_saveMedia media
+      
+      media.getAllFiles().then (files)=>
+        (Q.all files.map (file)=>
+          @_saveFile file
+        ).then ()=>
+          @_saveMedia media
     
     mediasPromise.then (medias)=>
       user.images = medias.map (media)->
