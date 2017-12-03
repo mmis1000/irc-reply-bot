@@ -140,6 +140,8 @@ class IrcRouter extends TextRouter
   disconnect: (msg, cb)->
     @client.disconnect msg, cb
   
+  getIdentifier: ()-> @identifier
+  
   getRouterIdentifier : ()->
     return @routerIdentifier or ''
   

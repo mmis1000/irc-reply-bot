@@ -23,7 +23,7 @@ var config = {
       ircConfig.identifier
     );
     ircRouter.enableFloodProtection(1000);
-    ircRouter.enableTimeout(600 * 1000)
+    // ircRouter.enableTimeout(600 * 1000)
     commandManager.addRouter(ircRouter);
     
     // load gateway to telegram
