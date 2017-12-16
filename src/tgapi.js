@@ -213,5 +213,10 @@ TelegramAPI.prototype.getUserProfilePhotos = function getUserProfilePhotos(user_
     datas.user_id = user_id;
     return this._invoke('getUserProfilePhotos', datas , cb);
 }
+TelegramAPI.prototype.getChat = function getChat(chat_id ,cb, datas) {
+    datas = typeof datas === "object" ? datas : {};
+    datas.chat_id = chat_id;
+    return this._invoke('getChat', datas , cb);
+}
 
 module.exports = TelegramAPI

@@ -520,6 +520,7 @@ class CommandLogs extends Icommand
       lastName: userInfo.lastName
       
       profileUrl: userInfo.profileUrl
+      type: userInfo.type
     }
     
     # console.log user

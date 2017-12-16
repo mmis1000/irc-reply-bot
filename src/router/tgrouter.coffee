@@ -303,6 +303,7 @@ class TelegramRouter extends TextRouter
         lastName: botUser.last_name or null
         firstName: botUser.first_name or null
         profileUrl: if botUser.username then "https://t.me/#{botUser.username}" else null
+        type: 'user'
       }
       
       if @userPostFix
@@ -448,13 +449,44 @@ createSenderFromMessage = (message, telegramRouter)->
     api = telegramRouter.api
     
     try
+      channelPhotoMedias = []
+      try
+        channelPhotoMedias = telegramRouter.userAvatarCache.get message.chat.id
+        if not channelPhotoMedias
+          channelPhoto = (yield telegramRouter.api.getChat message.chat.id, null).photo
+          if channelPhoto
+            channelPhotoMedia =  new Media {
+              id : "#{channelPhoto.big_file_id}@telegram-avatar",
+              role : 'avatar',
+              placeHolderText : '((avatar))',
+              files: [
+                (new TelegramFile channelPhoto.small_file_id, api, {
+                  isThumb: true
+                  length: 0,
+                  photoSize: [160, 160],
+                  meta: {overrides:{MIME: 'image/webp'}}
+                }),
+                (new TelegramFile channelPhoto.big_file_id, api, {
+                  isThumb: false
+                  length: 0,
+                  photoSize: [640, 640],
+                  meta: {overrides:{MIME: 'image/webp'}}
+                })
+              ]
+            }
+            channelPhotoMedias = [channelPhotoMedia]
+          else
+            channelPhotoMedias = []
+          telegramRouter.userAvatarCache.set message.chat.id, channelPhotoMedias
+      
       channelInfo = new User "##{message.chat.id}", {
-        images: []
+        images: channelPhotoMedias
         aliases: if message.chat.username then  [ message.chat.username ]else []
         nicknames: if message.chat.username then  [ '@' + message.chat.username ] else []
         lastName: message.chat.last_name or null
         firstName: message.chat.first_name or message.chat.title or null
         profileUrl: if message.chat.username then  "https://t.me/#{message.chat.username}" else null
+        type: if message.chat.id < 0 then 'channel' else 'user'
       }
       
       if telegramRouter.channelPostFix
@@ -501,6 +533,7 @@ createSenderFromMessage = (message, telegramRouter)->
         lastName: message.from.last_name or null
         firstName: message.from.first_name or null
         profileUrl: if message.from.username then "https://t.me/#{message.from.username}" else null
+        type: 'user'
       }
       
       if telegramRouter.userPostFix
@@ -544,7 +577,7 @@ createSenderFromUser = (user, telegramRouter)->
             createMediaFromPhotoList list, telegramRouter.api
           .map (media)-> 
             media.role = 'avatar'
-            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+            media.id = "#{userPhoto.photos[0].file_id}@telegram-avatar"
             media
         else
           userPhotoMedias = []
@@ -559,6 +592,7 @@ createSenderFromUser = (user, telegramRouter)->
         lastName: user.last_name or null
         firstName: user.first_name or null
         profileUrl: if user.username then "https://t.me/#{user.username}" else null
+        type: 'user'
       }
       
       if telegramRouter.userPostFix

@@ -1,6 +1,6 @@
 class User
   constructor: (@id, prop)->
-    @images = [] # intance of Media
+    @images = [] # instance of Media
     @aliases = [] # global alias
     @nicknames = [@id] # router only alias
     
@@ -9,6 +9,8 @@ class User
     @lastName = null
     
     @profileUrl = null
+    
+    @type = 'user'
     
     for key, value of prop
       @[key] = value
