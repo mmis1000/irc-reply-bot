@@ -1,5 +1,7 @@
 ##irc-reply-bot
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/mmis1000/irc-reply-bot.svg)](https://greenkeeper.io/)
+
 ------------
 
 a bot for user to set some keyword and reply pre-defined message
