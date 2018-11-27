@@ -1,0 +1,11 @@
+{
+  "groups": {
+    "default": {
+      "packages": [
+        "lib/mcstatus/package.json",
+        "package.json",
+        "src/mcstatus/package.json"
+      ]
+    }
+  }
+}
