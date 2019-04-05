@@ -75,7 +75,7 @@ class CommandCpu extends Icommand
 
     if args.length > 2
       return false
-    if 0 > ['all', 'load', 'clock', 'model'].indexOf args[0]
+    if 0 > ['all', 'load', 'clock', 'model', 'debug'].indexOf args[0]
       return false
     if isNaN Number args[1]
       return false
@@ -85,7 +85,10 @@ class CommandCpu extends Icommand
     current = stats[0]
     
     loads = getLoads()
-    if args[1] is -1
+
+    if args[0] == 'debug'
+      output = JSON.stringify(stats, 0, 4)
+    else if args[1] is -1
       for item, index in current
         output += "#{style.bold}##{index}:#{style.reset} "
         if args[0] is 'all'
