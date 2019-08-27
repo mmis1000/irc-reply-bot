@@ -313,9 +313,11 @@ class TelegramRouter extends TextRouter
       @userInfoCache.set userInfo.id, userInfo
       
       return userInfo
-      
+
+lastKnownTimeStamp = 0
+currentTimeStampOffset = 0
+
 createBotMessage = (message, telegramRouter)->
-  
   if message.text
     botMessage = new Message message.text, [], true, true
     
@@ -434,7 +436,13 @@ createBotMessage = (message, telegramRouter)->
     botMessage = new Message (message.text or "((tg-voice:#{message.voice.file_id}))"), [media], true, false
   
   if botMessage
-    botMessage.meta.time = new Date message.date * 1000
+    if message.date is lastKnownTimeStamp
+      currentTimeStampOffset++
+    else
+      lastKnownTimeStamp = message.date
+      currentTimeStampOffset = 0
+
+    botMessage.meta.time = new Date (message.date * 1000 + currentTimeStampOffset)
     botMessage.meta['_' + telegramRouter.getRouterIdentifier()] = message;
     
     if telegramRouter.channelPostFix
