@@ -3,8 +3,8 @@ moment = require 'moment'
 
 getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", collectionName = "Messages")->
   MessageSchema = mongoose.Schema {
-    from : String
-    to : String
+    from : { type : String, index : true }
+    to : { type : String, index : true }
     message : String
     
     # v2 message format
@@ -22,6 +22,9 @@ getMessageSchema = (mongoose, timezone, locale, mediaCollectionName = "Media", c
     time : { type : Date, index : true }
     meta: {}
   }, { collection : collectionName }
+  
+  MessageSchema.index({ from: 1, time: 1 });
+  MessageSchema.index({ to: 1, time: -1 });
   
   MessageSchema.methods.toString = ()->
     timeStamp = moment @time
