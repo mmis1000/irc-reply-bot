@@ -283,16 +283,20 @@ class TelegramRouter extends TextRouter
       userPhotoMedias = @userAvatarCache.get botUser.id
       
       if not userPhotoMedias
-        userPhoto = yield @api.getUserProfilePhotos(botUser.id, null)
-        if userPhoto.total_count > 0
-          userPhotoMedias = userPhoto.photos
-          .map (list)=>
-            createMediaFromPhotoList list, @api
-          .map (media, index)-> 
-            media.role = 'avatar'
-            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
-            media
-        else
+        try
+          userPhoto = yield @api.getUserProfilePhotos(botUser.id, null)
+          if userPhoto.total_count > 0
+            userPhotoMedias = userPhoto.photos
+            .map (list)=>
+              createMediaFromPhotoList list, @api
+            .map (media, index)-> 
+              media.role = 'avatar'
+              media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+              media
+          else
+            userPhotoMedias = []
+        catch
+          console.log 'skiping failed avatar...'
           userPhotoMedias = []
         @userAvatarCache.set botUser.id, userPhotoMedias
       
@@ -519,16 +523,20 @@ createSenderFromMessage = (message, telegramRouter)->
     try
       userPhotoMedias = telegramRouter.userAvatarCache.get message.from.id
       if not userPhotoMedias
-        userPhoto = yield telegramRouter.api.getUserProfilePhotos(message.from.id, null)
-        if userPhoto.total_count > 0
-          userPhotoMedias = userPhoto.photos
-          .map (list)->
-            createMediaFromPhotoList list, telegramRouter.api
-          .map (media, index)-> 
-            media.role = 'avatar'
-            media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
-            media
-        else
+        try
+          userPhoto = yield telegramRouter.api.getUserProfilePhotos(message.from.id, null)
+          if userPhoto.total_count > 0
+            userPhotoMedias = userPhoto.photos
+            .map (list)->
+              createMediaFromPhotoList list, telegramRouter.api
+            .map (media, index)-> 
+              media.role = 'avatar'
+              media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
+              media
+          else
+            userPhotoMedias = []
+        catch
+          console.log 'skiping failed avatar...'
           userPhotoMedias = []
         telegramRouter.userAvatarCache.set message.from.id, userPhotoMedias
       # else
@@ -578,16 +586,20 @@ createSenderFromUser = (user, telegramRouter)->
     try
       userPhotoMedias = telegramRouter.userAvatarCache.get user.id
       if not userPhotoMedias
-        userPhoto = yield telegramRouter.api.getUserProfilePhotos(user.id, null)
-        if userPhoto.total_count > 0
-          userPhotoMedias = userPhoto.photos
-          .map (list)->
-            createMediaFromPhotoList list, telegramRouter.api
-          .map (media)-> 
-            media.role = 'avatar'
-            media.id = "#{userPhoto.photos[0].file_id}@telegram-avatar"
-            media
-        else
+        try
+          userPhoto = yield telegramRouter.api.getUserProfilePhotos(user.id, null)
+          if userPhoto.total_count > 0
+            userPhotoMedias = userPhoto.photos
+            .map (list)->
+              createMediaFromPhotoList list, telegramRouter.api
+            .map (media)-> 
+              media.role = 'avatar'
+              media.id = "#{userPhoto.photos[0].file_id}@telegram-avatar"
+              media
+          else
+            userPhotoMedias = []
+        catch
+          console.log 'skiping failed avatar...'
           userPhotoMedias = []
         telegramRouter.userAvatarCache.set user.id, userPhotoMedias
       # else
