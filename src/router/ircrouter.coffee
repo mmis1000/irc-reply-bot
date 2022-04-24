@@ -2,7 +2,7 @@ TextRouter = require './textrouter'
 irc = require 'irc'
 class IrcRouter extends TextRouter
   constructor: (@server, @nick = 'irc-bot', @channels = [], @port = null, @SASL = null, @identifier = '*')->
-    super
+    super()
     @_timeoutId = null;
     @_timeoutInterval = null;
     @_init()

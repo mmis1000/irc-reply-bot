@@ -1,27 +1,18 @@
 virtual_class = (classes...)->
-  classes.reduceRight (Parent, Child)->
-    class Child_Projection extends Parent
-      constructor: ->
-        # Temporary replace Child.__super__ and call original `constructor`
-        child_super = Child.__super__
-        Child.__super__ = Child_Projection.__super__
-        Child.apply @, arguments
-        Child.__super__ = child_super
+  MixinClass = () ->
+    for Clazz in classes
+      try
+        Clazz.apply @, arguments
+    @
 
-        # If Child.__super__ not exists, manually call parent `constructor`
-        unless child_super?
-          super
+  for Clazz in classes
+    for own key of Clazz::
+      if Clazz::[key] isnt Clazz
+        MixinClass::[key] = Clazz::[key]
+    for own key of Clazz
+      if Clazz[key] isnt Object.getPrototypeOf(Clazz::)
+        MixinClass[key] = Clazz[key]
 
-    # Mixin prototype properties, except `constructor`
-    for own key  of Child::
-      if Child::[key] isnt Child
-        Child_Projection::[key] = Child::[key]
+  MixinClass
 
-    # Mixin static properties, except `__super__`
-    for own key  of Child
-      if Child[key] isnt Object.getPrototypeOf(Child::)
-        Child_Projection[key] = Child[key]
-
-    Child_Projection
-  
 module.exports = virtual_class

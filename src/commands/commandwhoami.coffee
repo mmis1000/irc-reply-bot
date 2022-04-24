@@ -2,7 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandWhoami extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length > 1
       return false

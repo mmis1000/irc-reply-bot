@@ -4,7 +4,7 @@ IFile = require './i_file'
 
 class BaseFile extends IFile
   constructor: (contentSource, content, options)->
-    super
+    super()
     
     options = {} if not 'object' is typeof options
     

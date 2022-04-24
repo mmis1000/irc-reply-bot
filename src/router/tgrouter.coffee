@@ -11,7 +11,7 @@ co = require 'co'
 
 class TelegramRouter extends TextRouter
   constructor: (@token, @channelPostFix = 'tg', @userPostFix = 'tg', @requireTag = false)->
-    super
+    super()
     @nameMap = {}
     @_selfName = null
     @_init()
@@ -85,23 +85,23 @@ class TelegramRouter extends TextRouter
         botMessage = createBotMessage message, @
         
         if botMessage
-          
-          co ()=>
+          self = @
+          co ()->
             if message.text
               console.log (new Date botMessage.meta.time).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + userName + ' => ' + channelId + ': ' + message.text.replace /\r?\n/g, '\r\n   | '
             
             if message.reply_to_message
-              targetMessage = createBotMessage message.reply_to_message, @
+              targetMessage = createBotMessage message.reply_to_message, self
               if targetMessage
                 botMessage.replyTo = {};
                 botMessage.replyTo.message = targetMessage
-                botMessage.replyTo.sender = yield createSenderFromMessage message.reply_to_message, @
+                botMessage.replyTo.sender = yield createSenderFromMessage message.reply_to_message, self
             if message.forward_from
-              botMessage.forwardFrom = yield createSenderFromUser message.forward_from, @
+              botMessage.forwardFrom = yield createSenderFromUser message.forward_from, self
               
-            sender = yield createSenderFromMessage message, @
+            sender = yield createSenderFromMessage message, self
             
-            @emit "message", botMessage, sender, clonedRouter
+            self.emit "message", botMessage, sender, clonedRouter
           .catch (e)->
             console.log(e)
             
@@ -273,22 +273,23 @@ class TelegramRouter extends TextRouter
       true
   
   getSelfInfo: ()->
-    co ()=>
-      cachedBotUser = @userInfoCache.get @_botInfo.id
+    self = @
+    co ()->
+      cachedBotUser = self.userInfoCache.get self._botInfo.id
       if cachedBotUser
         return cachedBotUser
       
-      @_botInfo = botUser = yield @api.getMe()
+      self._botInfo = botUser = yield self.api.getMe()
       
-      userPhotoMedias = @userAvatarCache.get botUser.id
+      userPhotoMedias = self.userAvatarCache.get botUser.id
       
       if not userPhotoMedias
         try
-          userPhoto = yield @api.getUserProfilePhotos(botUser.id, null)
+          userPhoto = yield self.api.getUserProfilePhotos(botUser.id, null)
           if userPhoto.total_count > 0
             userPhotoMedias = userPhoto.photos
             .map (list)=>
-              createMediaFromPhotoList list, @api
+              createMediaFromPhotoList list, self.api
             .map (media, index)-> 
               media.role = 'avatar'
               media.id = "#{userPhoto.photos[index][0].file_id}@telegram-avatar"
@@ -298,7 +299,7 @@ class TelegramRouter extends TextRouter
         catch
           console.log 'skiping failed avatar...'
           userPhotoMedias = []
-        @userAvatarCache.set botUser.id, userPhotoMedias
+        self.userAvatarCache.set botUser.id, userPhotoMedias
       
       userInfo = new User "undefined_#{botUser.id}", {
         images: userPhotoMedias
@@ -310,11 +311,11 @@ class TelegramRouter extends TextRouter
         type: 'user'
       }
       
-      if @userPostFix
-        userInfo.id += '@' + @userPostFix
-        userInfo.aliases[0] += '@' + @userPostFix if userInfo.aliases[0]
+      if self.userPostFix
+        userInfo.id += '@' + self.userPostFix
+        userInfo.aliases[0] += '@' + self.userPostFix if userInfo.aliases[0]
       
-      @userInfoCache.set userInfo.id, userInfo
+      self.userInfoCache.set userInfo.id, userInfo
       
       return userInfo
 

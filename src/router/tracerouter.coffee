@@ -7,7 +7,7 @@ TextRouter = require './textrouter'
 
 class TraceRouter extends IRouter
   constructor: (@parentRouter)->
-    super
+    super()
     
     # proxy methods
     for key, value of TextRouter.prototype

@@ -8,6 +8,7 @@ padding = (str, fill, len)->
 
 class CommandChannelName extends Icommand
   constructor: ()->
+    super()
     @lastStartUp = Date.now()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 1

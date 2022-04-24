@@ -2,6 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandRegex extends Icommand
   constructor: (@storage)->
+    super()
     @record = 10
     @lastMessages = {}
     @locale = {

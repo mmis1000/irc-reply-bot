@@ -10,6 +10,7 @@ escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandLogs extends Icommand
   constructor: (@dbpath, @timezone = '+00:00', @locale = 'en', @collectionName = 'Messages', @gridFSCollectionName = 'FileContent')->
+    super()
     @defaultPageShow = 10
     @pageShowMax = 15
     @Message = null

@@ -2,6 +2,7 @@ Icommand = require '../../icommand.js'
 
 class CommandFortune extends Icommand
   constructor: (@list)->
+    super()
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 1

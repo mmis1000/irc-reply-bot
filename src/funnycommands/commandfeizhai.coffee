@@ -5,7 +5,7 @@ Icommand = require '../icommand.js'
 
 class CommandFeiZhai extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length isnt 4
       return false

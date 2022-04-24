@@ -5,7 +5,7 @@ TextRouter = require './textrouter'
 
 class PipeRouter extends IRouter
   constructor: (@parentRouter)->
-    super
+    super()
     
     # proxy methods
     for key, value of TextRouter.prototype

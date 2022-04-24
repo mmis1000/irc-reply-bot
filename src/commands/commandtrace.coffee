@@ -14,6 +14,7 @@ options =
 
 class CommandTrace extends Icommand
   constructor: ()->
+    super()
     @session = ping.createSession(options)
     @TTL_LIMIT = 30
   handle: (sender ,text, args, storage, textRouter, commandManager)->

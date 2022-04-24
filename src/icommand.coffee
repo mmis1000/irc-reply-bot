@@ -1,7 +1,7 @@
 
 class Icommand
   constructor: ()->
-    
+
   handle: (senter ,text, args, storage, textRouter, commandManager, fromBinding, originalMessage)->
     textRouter.output "add method to compelete this!"
     success = false

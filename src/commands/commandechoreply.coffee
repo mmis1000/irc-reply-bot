@@ -2,7 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandEchoReply extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager, formBinding, originalMessage)->
     if args.length > 2
       return false

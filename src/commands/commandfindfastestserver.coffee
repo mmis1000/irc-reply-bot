@@ -6,6 +6,7 @@ punycode = require 'punycode'
 
 class CommandFindFastestServer extends Icommand
   constructor: ()->
+    super()
     @session = ping.createSession()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2

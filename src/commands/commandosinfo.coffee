@@ -10,6 +10,7 @@ padding = (str, fill, len)->
 
 class CommandOsInfo extends Icommand
   constructor: ()->
+    super()
     @displayed = ['hostname', 'type', 'platform', 'arch', 'release', 'uptime', 'loadavg']
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->

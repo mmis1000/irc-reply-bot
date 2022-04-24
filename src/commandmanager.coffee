@@ -13,6 +13,7 @@ escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class CommandManager extends EventEmitter
   constructor: (@storage, textRouter)->
+    super()
     # @identifier = "!"
     @commandFormat = /^.*$/g
     # @keywordPrefix = "^"

@@ -6,8 +6,8 @@ imgur = require 'imgur'
 
 class TextRouter extends IRouter
   constructor: ()->
+    super()
     @maxLength = 350
-    super
 
   output : (message, to)->
     if Array.isArray message

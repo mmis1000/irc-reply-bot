@@ -3,6 +3,7 @@ Icommand = require '../icommand.js'
 
 class CommandSay extends Icommand
   constructor: (@storage)->
+    super()
     @maxRecord = 500
     @defaultPageShow = 10
     @userPageShowMax = 20

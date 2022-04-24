@@ -2,7 +2,7 @@ Imodule = require '../imodule.js'
 
 class Ban extends Imodule
   constructor: ()->
-    super
+    super()
     @name = 'ban'
   
   handleRaw: (sender, type, content, textRouter, commandManager, event)->

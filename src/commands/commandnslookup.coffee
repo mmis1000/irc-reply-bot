@@ -4,6 +4,7 @@ punycode = require 'punycode'
 
 class CommandNslookup extends Icommand
   constructor: ()->
+    super()
     @avaliableTypes = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'SRV', 'PTR', 'CNAME']
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length == 1

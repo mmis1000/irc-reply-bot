@@ -4,6 +4,7 @@ Moment = require 'moment'
 
 class CommandGoogleCalender extends Icommand
   constructor: ()->
+    super()
     @APIPath = 'https://clients6.google.com/calendar/v3/calendars/@/events'
   
   handle: (sender ,text, args, storage, textRouter, commandManager)->

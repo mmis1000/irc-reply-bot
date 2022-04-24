@@ -1,0 +1,9 @@
+{
+  "apps" : [{
+    "name"        : "reply_bot",
+    "script"      : "./bot.js",
+    "watch" : ["js", "coffee"],
+    "ignore_watch" : ["node_modules"],
+    "exec_mode"   : "fork",
+  }]
+}

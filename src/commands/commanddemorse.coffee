@@ -87,7 +87,7 @@ Icommand = require '../icommand.js'
 
 class CommandDemorse extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length == 1 or (args.length == 2 and args[1] == "")
       return false

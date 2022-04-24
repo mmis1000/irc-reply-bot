@@ -8,7 +8,7 @@ escapeRegex = (text)->text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 
 class Bind extends Imodule
   constructor: ()->
-    super
+    super()
     @name = 'bind'
   handleRaw: (sender, type, content, textRouter, commandManager, event)->
     if type == 'init'

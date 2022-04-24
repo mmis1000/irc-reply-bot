@@ -63,7 +63,7 @@ setInterval addStat, intervalMS
 
 class CommandCpu extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     args = args[1..]
     

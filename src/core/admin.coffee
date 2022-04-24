@@ -2,7 +2,7 @@ Imodule = require '../imodule'
 
 class Admin extends Imodule
   constructor: (@bot)->
-    super
+    super()
     @name = 'admin'
     
     exitCommand =

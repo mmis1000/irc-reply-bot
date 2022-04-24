@@ -19,7 +19,7 @@ formatMemory = (num, type, showType = 'show')->
 
 class CommandMemory extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager, formBinding, originalMessage)->
     
     if args.length is 1

@@ -24,6 +24,7 @@ padding = (str, fill, len)->
 
 class CommandProcess extends Icommand
   constructor: ()->
+    super()
     @displayed = ['pid', 'memoryUsage', 'uptime']
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->

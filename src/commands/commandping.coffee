@@ -7,6 +7,7 @@ patch_ping ping.Session
 
 class CommandPing extends Icommand
   constructor: ()->
+    super()
     @session = ping.createSession()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 2

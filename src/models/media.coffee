@@ -3,7 +3,7 @@ Q = require 'q'
 
 class Media extends IMedia
   constructor: (options)->
-    super
+    super()
     
     options = {} if not 'object' is typeof options
     

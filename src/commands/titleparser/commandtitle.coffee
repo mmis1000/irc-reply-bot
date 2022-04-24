@@ -31,6 +31,7 @@ MAX_SCREEN_SIZE_Y = 2400
 ###
 class CommandTitle extends virtual_class EventEmitter, Icommand
   constructor: (@storage)->
+    super()
     @debug = true
     
     @setting = @storage.get 'titleParser', {enabled : true, mode : 'default', exclude : []}

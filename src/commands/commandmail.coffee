@@ -2,6 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandMail extends Icommand
   constructor: (@storage)->
+    super()
     
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     accountRule = /^[a-z_\-\[\]\\^{}|`][a-z0-9_\-\[\]\\^{}|`]*$/i

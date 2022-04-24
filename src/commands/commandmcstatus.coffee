@@ -5,7 +5,7 @@ URL = require 'url'
 #mcStatus.setDebugMode true
 class CommandReply extends Icommand
   constructor: ()->
-    
+    super()
   handle: (sender ,text, args, storage, textRouter, commandManager)->
     if args.length != 3 && args.length != 2
       return false

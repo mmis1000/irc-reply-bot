@@ -1,6 +1,7 @@
 Icommand = require './icommand'
 class Imodule extends Icommand
   constructor: ()->
+    super()
     @name = null
     @commandMap = {}
     

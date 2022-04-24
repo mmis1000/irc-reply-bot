@@ -31,6 +31,7 @@ class _Task
 
 class Defer extends EventEmitter
   constructor: ()->
+    super()
     @tasklist = []
     @results = []
     @errors = []

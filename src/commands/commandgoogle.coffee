@@ -3,6 +3,7 @@ google = require 'google'
 
 class CommandGoogle extends Icommand
   constructor: (options)->
+    super()
     options = options || {}
     google.tld = options.tld if options.tld
     google.lang = options.lang if options.lang

@@ -2,6 +2,7 @@ Icommand = require '../icommand.js'
 
 class CommandNotifyAll extends Icommand
   constructor: ()->
+    super()
     @cd_min = 10
     @lockUntil = Date.now()
   handle: (sender ,text, args, storage, textRouter, commandManager)->

@@ -2,7 +2,9 @@ Icommand = require '../icommand.js'
 TraceRouter = require '../router/tracerouter'
 
 class CommandRand extends Icommand
-  constructor: (@seperator = "|")->
+  constructor: (seperator = "|")->
+    super()
+    @seperator = seperator
     
   handle: (sender ,text, args, storage, textRouter, commandManager, fromBinding)->
     if args.length == 1 or (args.length == 2 and args[1] == "")
