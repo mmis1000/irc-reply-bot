@@ -35,9 +35,9 @@ class CommandLogs extends Icommand
     db.on 'reconnected', ->
       console.log 'MongoDB reconnected!'
       return
-    db.on 'disconnected', ->
+    db.on 'disconnected', =>
       console.log 'MongoDB disconnected!'
-      mongoose.connect @dbpath, server: auto_reconnect: true
+      # mongoose.connect @dbpath, server: auto_reconnect: true
       return
     db.once 'open', =>
       console.log 'MongoDB connection opened!'
@@ -45,8 +45,8 @@ class CommandLogs extends Icommand
       return
     
     mongoose.connect @dbpath,
-      autoReconnect: true
-      useMongoClient: true
+      useUnifiedTopology: true
+      useNewUrlParser: true
     
     # db.once 'open', @_onDbConnect.bind @, null
     db.setMaxListeners(Infinity );

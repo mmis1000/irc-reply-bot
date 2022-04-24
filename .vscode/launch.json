@@ -11,6 +11,9 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
+            "env": {
+                "PATH": "/home/mmis1000/.nvm/versions/node/v14.19.1/bin:/home/mmis1000/.vscode-server/bin/dfd34e8260c270da74b5c2d86d61aee4b6d56977/bin/remote-cli:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+            },
             "type": "node"
         }
         
