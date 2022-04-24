@@ -61,10 +61,18 @@ class TelegramRouter extends TextRouter
         if @userPostFix
           userName += "@" + @userPostFix
         
+        allEntry = new Map()
+        currentProto = TelegramRouter::
+
+        while currentProto isnt null
+          for key in Reflect.ownKeys currentProto
+            if !allEntry.has(key)
+              allEntry.set(key, currentProto[key])
+          currentProto = currentProto.__proto__
         
         clonedRouter = {}
         
-        for key, value of @
+        for [key, value] in Array.from(allEntry)
           clonedRouter[key] = value
           if 'function' is typeof value
             if not value.toString().match /\[native code\]/

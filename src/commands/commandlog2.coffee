@@ -44,7 +44,9 @@ class CommandLogs extends Icommand
       @_onDbConnect();
       return
     
-    mongoose.connect @dbpath, server: auto_reconnect: true
+    mongoose.connect @dbpath,
+      autoReconnect: true
+      useMongoClient: true
     
     # db.once 'open', @_onDbConnect.bind @, null
     db.setMaxListeners(Infinity );
