@@ -147,13 +147,7 @@ var config = {
     
     var CommandTime = require('./lib/commands/commandtime.js');
     commandManager.register ("time", new CommandTime(), []);
-    
-    
-    helper.safeLoad(function(){
-      var CommandTitle = require('./lib/commands/titleparser')
-      commandManager.register ("title", new CommandTitle(helper.createStorage(titleParserConfigPath)), []);
-    }, "title");
-    
+
     helper.safeLoad(function(){
       var CommandTrace = require('./lib/commands/commandtrace.js')
       commandManager.register ("trace", new CommandTrace(), ['t']);
