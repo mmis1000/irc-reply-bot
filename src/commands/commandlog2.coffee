@@ -2,7 +2,6 @@ Icommand = require '../icommand.js'
 mongoose = require 'mongoose'
 moment = require 'moment'
 mubsub = require 'mubsub'
-Grid = require 'gridfs-stream'
 Q = require 'q'
 LRU = require 'lru-cache'
 
@@ -44,9 +43,7 @@ class CommandLogs extends Icommand
       @_onDbConnect();
       return
     
-    mongoose.connect @dbpath,
-      useUnifiedTopology: true
-      useNewUrlParser: true
+    mongoose.connect @dbpath
     
     # db.once 'open', @_onDbConnect.bind @, null
     db.setMaxListeners(Infinity );
@@ -65,7 +62,8 @@ class CommandLogs extends Icommand
       console.error err
       return
       
-    @gfs = Grid mongoose.connection.db, mongoose.mongo
+    @gfs = new mongoose.mongo.GridFSBucket mongoose.connection.db,
+      bucketName: @gridFSCollectionName
     
     fileSchemaFactory = require './log_modules/file_schema_factory'
     FileSchema = fileSchemaFactory mongoose
@@ -396,10 +394,8 @@ class CommandLogs extends Icommand
         console.log "file #{file.UID} existed. skipping..."
         defered.resolve doc
         throw new Error 'doc exist'
-      writestream = @gfs.createWriteStream {
-        filename: file.UID
-        content_type: file.MIME
-        root: @gridFSCollectionName
+      writestream = @gfs.openUploadStream file.UID, {
+        contentType: file.MIME
       }
       ###
       console.log {
