@@ -67,7 +67,7 @@ class IrcRouter extends TextRouter
         @client.say target, m
         console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + '*self* => ' + target + ': ' + m
       else if Array.isArray target
-        for person in target
+        for person from target
           @client.say person, m
           console.log (new Date).toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' ' + '*self* => ' + person + ': ' + m
       return

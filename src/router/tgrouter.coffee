@@ -65,7 +65,7 @@ class TelegramRouter extends TextRouter
         currentProto = TelegramRouter::
 
         while currentProto isnt null
-          for key in Reflect.ownKeys currentProto
+          for key from Reflect.ownKeys currentProto
             if !allEntry.has(key)
               allEntry.set(key, currentProto[key])
           currentProto = currentProto.__proto__
@@ -188,7 +188,7 @@ class TelegramRouter extends TextRouter
     if ('string' == typeof to) || not to?
       @emit "output", message, to, message_id_temp, textFormat
     else
-      for person in to
+      for person from to
         @emit "output", message, person, message_id_temp, textFormat
   
   outputMessage: (message, to, message_id, originalChannel)->
@@ -674,7 +674,7 @@ class TelegramText
     if not entities
       return chars.join ''
     
-    for entity in entities
+    for entity from entities
       switch entity.type
           
         when 'code'
@@ -698,7 +698,7 @@ class TelegramText
         when 'pre'
           realOffset = offset + entity.offset
           
-          for i in [realOffset..realOffset + entity.length - 1]
+          for i from [realOffset..realOffset + entity.length - 1]
             if chars[i] is '<br/>'
               chars[i] = '\n'
             

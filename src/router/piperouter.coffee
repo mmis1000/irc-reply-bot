@@ -31,7 +31,7 @@ class PipeRouter extends IRouter
     
   transformResults : (res)->
     output = []
-    for result in res
+    for result from res
       if result.type is 'output'
         if Array.isArray typeof result.message
           output.push result.message.join "\r\n"

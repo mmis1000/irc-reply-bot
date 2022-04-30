@@ -1,11 +1,11 @@
 virtual_class = (classes...)->
   MixinClass = () ->
-    for Clazz in classes
+    for Clazz from classes
       try
         Clazz.apply @, arguments
     @
 
-  for Clazz in classes
+  for Clazz from classes
     for own key of Clazz::
       if Clazz::[key] isnt Clazz
         MixinClass::[key] = Clazz::[key]

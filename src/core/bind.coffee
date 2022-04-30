@@ -43,7 +43,7 @@ class Bind extends Imodule
     if not isCommand
       #handle keywords or none command here
       ###
-      for keyword in @keywords
+      for keyword from @keywords
         newKeyword = helper.compileText keyword, sender, commandManager, router
         try
           if (original.search newKeyword) >= 0
@@ -80,7 +80,7 @@ class Bind extends Imodule
     results = [] 
     if (original.search escapeRegex commandManager.identifier) != 0
       #handle keywords or none command here
-      for keyword in @keywords
+      for keyword from @keywords
         newKeyword = helper.compileText keyword, sender, commandManager, router
         try
           if (original.search newKeyword) >= 0

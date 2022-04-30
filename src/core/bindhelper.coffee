@@ -13,17 +13,17 @@ class BindHelper
   _init: ()->
     ###
     temp = folderLoader path.resolve __dirname, 'bind-symbol'
-    for item in temp
+    for item from temp
       if item.module.symbols
-        for symbol in item.module.symbols
+        for symbol from item.module.symbols
           @symbolMap[symbol] = item.module
     #console.log @symbolMap
     ###
 
     temp = folderLoader path.resolve __dirname, 'bind-filter'
-    for item in temp
+    for item from temp
       if item.module.symbols
-        for symbol in item.module.symbols
+        for symbol from item.module.symbols
           @filterMap[symbol] = item.module
     #console.log @filterMap
     
@@ -46,7 +46,7 @@ class BindHelper
     
     mask = {}
     
-    for item in whiteSpaced
+    for item from whiteSpaced
       i = item[0]
       while i < item[1]
         mask[i] = true
@@ -94,7 +94,7 @@ class BindHelper
           .replace /^\s+|\s+$/g, ''
         pairs = []
         
-        # for pair in temp2
+        # for pair from temp2
         pipe = new PipeRouter router
         
         text = temp2[0]
@@ -142,7 +142,7 @@ class BindHelper
         ###
         try
           output = @symbolMap[symbol].handle sender, str, args, manager, router
-          for pair in pairs[1..]
+          for pair from pairs[1..]
             output = @filterMap[pair[0]].handle sender, output, pair[1..], manager, router
           temp[index] = output
         catch e

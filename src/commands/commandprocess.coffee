@@ -38,7 +38,7 @@ class CommandProcess extends Icommand
     
     output = []
     if args[1] is 'all'
-      for type in @displayed
+      for type from @displayed
         output.push "#{type} : #{@_getValue type}"
     else if args[1] in @displayed
       output.push @_getValue args[1]

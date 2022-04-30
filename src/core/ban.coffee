@@ -126,7 +126,7 @@ class Ban extends Imodule
     
     
   isBanned: (sender)->
-    for i in (@storage.get "banList") || []
+    for i from (@storage.get "banList") || []
       try
         if 0 <= sender.sender.search new RegExp i, "gi"
           return true
@@ -135,7 +135,7 @@ class Ban extends Imodule
   isChannelIgnored: (sender)->
     if sender.target.match /^[^#]/
       return false
-    for i in (@storage.get "banChannelList") || []
+    for i from (@storage.get "banChannelList") || []
       try
         if 0 <= sender.target.search new RegExp i, "gi"
           return true

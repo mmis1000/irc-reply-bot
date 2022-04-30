@@ -48,7 +48,7 @@ class CommandSay extends Icommand
     
     replys = []
     
-    for record in result.list
+    for record from result.list
       date = new Date record.time
       replys.push "#{date.getFullYear()}/\
         #{date.getMonth() + 1}/\

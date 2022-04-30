@@ -119,7 +119,7 @@ class CommandLogs extends Icommand
     args = args[0..]
     flags = Object.keys flagSet
     find = (arr, list)->
-      for item in list
+      for item from list
         index = arr.indexOf item
         if index isnt -1
           return {
@@ -257,7 +257,7 @@ class CommandLogs extends Icommand
         #console.log messages
         messages.reverse()
         
-        for message in messages
+        for message from messages
           commandManager.sendPv sender, textRouter, message.toString()
         
         commandManager.sendPv sender, textRouter, "Page #{pageNumber} of total #{maxPage} Pages. Time Zone is #{@timezone}"

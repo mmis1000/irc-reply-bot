@@ -16,17 +16,17 @@ class TextRouter extends IRouter
     
     temp = []
     
-    for text in message
+    for text from message
       temp = temp.concat UTF8LengthSplit text, @maxLength
     
     #console.log temp
     #console.log temp.length
     if ('string' == typeof to) || not to?
-      for item in temp
+      for item from temp
         @emit "output", item, to
     else
-      for person in to
-        for item in temp
+      for person from to
+        for item from temp
           @emit "output", item, person
     true
     

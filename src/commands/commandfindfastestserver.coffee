@@ -30,7 +30,7 @@ class CommandFindFastestServer extends Icommand
           (arg...)->
             handle.apply null, [addresses].concat arg
           
-        for item in addresses
+        for item from addresses
           AddressStates.push
             finished : false
             ping : null
@@ -65,7 +65,7 @@ class CommandFindFastestServer extends Icommand
           AddressStates = AddressStates[0..9]
           
           i = 1
-          for item in AddressStates
+          for item from AddressStates
             commandManager.sendPv sender, textRouter, "FindFastestServer : #{i}. #{item.address} (#{item.ping}ms) #{if item.reverseLookup then item.reverseLookup else ''}"
             i++
           done()

@@ -19,7 +19,7 @@ channel = '#ysitd'
 dateTemp = null
 
 ###
-for item in rawLogs
+for item from rawLogs
   if 0 == item.search '-'
     #console.log item 
     if temp = (/^--- Log opened .+ (.+ .+) .+ (.+)$/).exec item
@@ -118,7 +118,7 @@ afterInit = ()->
     
   
   ###
-  for log in fineLogs
+  for log from fineLogs
     message = new Message {
       from : log[1],
       to : channelName,

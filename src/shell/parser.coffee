@@ -68,7 +68,7 @@ class Parser
         start: start
         end: i
     
-    for compund in compunds.reverse()
+    for compund from compunds.reverse()
       bytes.splice compund.start, compund.end - compund.start + 1, bytes[compund.start .. compund.end].join ''
     
     bytes = bytes.map (i)->

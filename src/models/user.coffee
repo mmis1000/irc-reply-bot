@@ -28,7 +28,7 @@ class User
       ids.push someone.id
       ids = ids.concat someone.aliases
     
-    for id in ids
+    for id from ids
       if @id is id
         return true
       if id in @alias

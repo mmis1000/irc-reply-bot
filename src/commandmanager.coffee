@@ -115,10 +115,10 @@ class CommandManager extends EventEmitter
     
   handleRaw: (sender, type, contents, textRouter)->
     event = {cancelled : false}
-    for command in @commands
+    for command from @commands
       @commandMap[command].handleRaw sender, type, contents, textRouter, @, event
     
-    for module in @modules
+    for module from @modules
       module.handleRaw sender, type, contents, textRouter, @, event
     
     return event
@@ -197,7 +197,7 @@ class CommandManager extends EventEmitter
     @commandMap[keyword] = iCommand
     @commandAliasMap[keyword] = aliasList
     #generate reverse map for fast access
-    for command in aliasList
+    for command from aliasList
       @aliasMap[command] = keyword
 
   load: (moudle)->
@@ -279,7 +279,7 @@ class CommandManager extends EventEmitter
     else
       targets = sender.channel
     
-    for target in targets
+    for target from targets
       @sendMessage sender, router, message, target
   
   ###*
@@ -302,7 +302,7 @@ class CommandManager extends EventEmitter
     if targetId is routerId
       return currentRouter
     
-    for router in @routers
+    for router from @routers
       routerId = router.getRouterIdentifier() or ''
       if targetId is routerId
         return router

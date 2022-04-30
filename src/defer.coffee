@@ -112,7 +112,7 @@ class Defer extends EventEmitter
   
   _checkUpTesk: ()->
     process.nextTick ()=>
-      for task in @tasklist
+      for task from @tasklist
         if task.done is true
           @emit 'done', task
           if task.finished

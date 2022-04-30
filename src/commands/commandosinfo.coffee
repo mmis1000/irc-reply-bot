@@ -20,7 +20,7 @@ class CommandOsInfo extends Icommand
       args.push 'all'
     output = []
     if args[1] is 'all'
-      for type in @displayed
+      for type from @displayed
         output.push "#{type} : #{@_mapper os[type](), type}"
     else if args[1] in @displayed
       output.push "#{@_mapper os[args[1]](), args[1]}"
