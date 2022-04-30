@@ -76,7 +76,7 @@ class TelegramRouter extends TextRouter
           clonedRouter[key] = value
           if 'function' is typeof value
             if not value.toString().match /\[native code\]/
-              clonedRouter.key = value.bind @
+              clonedRouter[key] = value.bind @
               
         message_id = message.message_id
         message_ = message
