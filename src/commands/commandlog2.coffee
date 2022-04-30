@@ -341,7 +341,7 @@ class CommandLogs extends Icommand
       
       textRouter.getSelfInfo()
       .then (user)=>
-        @_saveUser user if user
+        @_saveUser user, commandManager if user
       
       onChannel = 0 is content.target.search /#/
       date = content.message.meta.time or new Date
