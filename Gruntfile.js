@@ -10,7 +10,10 @@ module.exports = function(grunt) {
         src: ['**/*.coffee'],
         dest: 'lib/',
         ext: '.js'
-      }
+      },
+      options: {
+        bare: true
+      },
     },
     clean:  {
       js: ["lib/**/*"]
