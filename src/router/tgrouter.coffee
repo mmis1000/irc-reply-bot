@@ -72,7 +72,7 @@ class TelegramRouter extends TextRouter
         
         clonedRouter = {}
         
-        for [key, value] in Array.from(allEntry)
+        for [key, value] from Array.from(allEntry)
           clonedRouter[key] = value
           if 'function' is typeof value
             if not value.toString().match /\[native code\]/
