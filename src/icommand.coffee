@@ -19,10 +19,18 @@ class Icommand
   isBindSymbol: ()-> false
   
   Icommand.__createAsInstance__ = (obj)->
-    instance = new Icommand
-    for key, value of instance
+    allEntry = new Map()
+    currentProto = Icommand::
+
+    while currentProto isnt null
+      for key from Reflect.ownKeys currentProto
+        if !allEntry.has(key) and 'function' is typeof currentProto[key]
+          allEntry.set(key, currentProto[key])
+      currentProto = currentProto.__proto__
+
+    for [key, value] from allEntry
       if not obj[key]?
-        obj[key] = instance[key]
+        obj[key] = value
     obj
   
 module.exports = Icommand
